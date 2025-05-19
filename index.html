@@ -104,33 +104,29 @@
             color: #00bfff;
             position: sticky;
             top: 0;
-            background: #1a1a1a;
+            background: #333333;
             z-index: 1;
-            background-color: #333333;
-            color: #FFFFFF;
             padding: 8px;
             cursor: pointer;
+            user-select: none;
         }
         
         .high-scores-table th:hover {
             background-color: #444444;
         }
         
-        .high-scores-table th::after {
-            content: '';
+        .high-scores-table th.sort-asc::after {
+            content: ' ▲';
             display: inline-block;
-            width: 0;
             margin-left: 5px;
         }
         
-        .high-scores-table th.sort-asc::after {
-            content: '▲';
+        .high-scores-table th.sort-desc::after {
+            content: ' ▼';
+            display: inline-block;
+            margin-left: 5px;
         }
         
-        .high-scores-table th.sort-desc::after {
-            content: '▼';
-        }
-
         .high-scores-table tr:last-child td {
             border-bottom: none;
         }
@@ -502,7 +498,7 @@
                         High Scores
                     </div>
                     <div class="high-scores-table-container">
-                        <table class="high-scores-table" id="high-scores-table">
+                        <table class="high-scores-table">
                             <thead>
                                 <tr>
                                     <th data-sort="rank">Rank</th>
@@ -1140,7 +1136,20 @@
         // Initialize the game
         function init() {
             // Load high scores
-            loadHighScores();
+            try {
+                const savedScores = localStorage.getItem('tetrisHighScores');
+                if (savedScores) {
+                    highScores = JSON.parse(savedScores);
+                }
+            } catch (e) {
+                console.error('Error loading high scores:', e);
+            }
+            
+            // Update high scores table
+            updateHighScoresTable();
+            
+            // Set up sorting for high scores table
+            setupHighScoresSorting();
             
             // Display welcome message and instructions
             ctx.fillStyle = '#000000';
@@ -1169,6 +1178,32 @@
             // Initialize game state
             gameRunning = false;
             canStartNewGame = true;
+        }
+        
+        // Show welcome screen
+        function showWelcomeScreen() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#00bfff';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('TETRIS', canvas.width / 2, canvas.height / 3);
+            
+            // Draw instructions
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '18px Arial';
+            ctx.fillText('Press S to start', canvas.width / 2, canvas.height / 2);
+            
+            // Draw controls summary
+            ctx.font = '14px Arial';
+            ctx.fillText('← → : Move', canvas.width / 2, canvas.height / 2 + 40);
+            ctx.fillText('↑ : Rotate', canvas.width / 2, canvas.height / 2 + 65);
+            ctx.fillText('↓ : Soft Drop', canvas.width / 2, canvas.height / 2 + 90);
+            ctx.fillText('Space : Hard Drop', canvas.width / 2, canvas.height / 2 + 115);
+            ctx.fillText('P : Pause', canvas.width / 2, canvas.height / 2 + 140);
+            ctx.fillText('Esc : Exit', canvas.width / 2, canvas.height / 2 + 165);
         }
 
         // Start the game
@@ -1267,38 +1302,51 @@
         
         // Add sorting functionality to high scores table
         function setupHighScoresSorting() {
-            const table = document.getElementById('high-scores-table');
-            const headers = table.querySelectorAll('th');
-            let currentSort = { column: 'score', direction: 'desc' };
+            // Add click handlers directly to each th element
+            document.querySelector('th[data-sort="rank"]').onclick = function() { sortTable('rank'); };
+            document.querySelector('th[data-sort="name"]').onclick = function() { sortTable('name'); };
+            document.querySelector('th[data-sort="score"]').onclick = function() { sortTable('score'); };
+            document.querySelector('th[data-sort="level"]').onclick = function() { sortTable('level'); };
+            document.querySelector('th[data-sort="lines"]').onclick = function() { sortTable('lines'); };
+            document.querySelector('th[data-sort="date"]').onclick = function() { sortTable('date'); };
             
-            // Add click event to all headers
+            // Set initial sort (score descending)
+            document.querySelector('th[data-sort="score"]').classList.add('sort-desc');
+        }
+        
+        // Global sort state
+        let currentSortColumn = 'score';
+        let currentSortDirection = 'desc';
+        
+        // Sort the high scores table by a column
+        function sortTable(column) {
+            console.log('Sorting by:', column);
+            
+            // Get all th elements
+            const headers = document.querySelectorAll('.high-scores-table th');
+            
+            // Toggle direction if same column clicked
+            if (column === currentSortColumn) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'desc'; // Default to descending
+            }
+            
+            // Remove sort classes from all headers
             headers.forEach(header => {
-                header.addEventListener('click', () => {
-                    const column = header.dataset.sort;
-                    
-                    // Toggle sort direction if clicking the same column
-                    if (currentSort.column === column) {
-                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        currentSort.column = column;
-                        currentSort.direction = 'desc'; // Default to descending
-                    }
-                    
-                    // Remove sort classes from all headers
-                    headers.forEach(h => {
-                        h.classList.remove('sort-asc', 'sort-desc');
-                    });
-                    
-                    // Add sort class to current header
-                    header.classList.add(`sort-${currentSort.direction}`);
-                    
-                    // Sort the high scores
-                    sortHighScores(currentSort.column, currentSort.direction);
-                    
-                    // Update the table
-                    updateHighScoresTable();
-                });
+                header.classList.remove('sort-asc', 'sort-desc');
             });
+            
+            // Add sort class to current header
+            const currentHeader = document.querySelector(`th[data-sort="${column}"]`);
+            currentHeader.classList.add(`sort-${currentSortDirection}`);
+            
+            // Sort the high scores
+            sortHighScores(column, currentSortDirection);
+            
+            // Update the table
+            updateHighScoresTable();
         }
         
         // Sort high scores based on column and direction
@@ -1326,9 +1374,8 @@
                     case 'lines':
                         return (a.lines - b.lines) * multiplier;
                     case 'date':
-                        valueA = new Date(a.date);
-                        valueB = new Date(b.date);
-                        return (valueA - valueB) * multiplier;
+                        // Handle date comparison
+                        return (new Date(a.date) - new Date(b.date)) * multiplier;
                     default:
                         return 0;
                 }
@@ -1399,7 +1446,6 @@
 
         // Initialize the game
         init();
-        setupHighScoresSorting();
     </script>
 </body>
 </html>
