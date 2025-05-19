@@ -597,13 +597,24 @@
 
         // Load high scores from server
         function loadHighScores() {
-            fetch('/api/scores')
-                .then(response => response.json())
+            // Use relative URL that works both locally and on deployed site
+            const apiUrl = window.location.origin + '/api/scores';
+            console.log('Loading high scores from:', apiUrl);
+            
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data && data.highScores) {
                         highScores = data.highScores;
                         updateHighScoresTable();
                         console.log('High scores loaded successfully:', highScores);
+                    } else {
+                        console.warn('High scores data format unexpected:', data);
                     }
                 })
                 .catch(error => {
@@ -613,14 +624,23 @@
         
         // Save high scores to server
         function saveHighScoresToServer() {
-            fetch('/api/scores', {
+            // Use relative URL that works both locally and on deployed site
+            const apiUrl = window.location.origin + '/api/scores';
+            console.log('Saving high scores to:', apiUrl);
+            
+            fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(highScores)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('Scores saved successfully');
                 // Reload scores after saving to ensure we have the latest data
@@ -630,12 +650,6 @@
                 console.error('Error saving scores:', error);
             });
         }
-
-        // Load high scores immediately when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadHighScores();
-            init();
-        });
 
         // Initialize the board
         function initBoard() {
@@ -1470,8 +1484,11 @@
             }
         });
 
-        // Initialize the game
-        init();
+        // Load high scores immediately when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHighScores();
+            init();
+        });
     </script>
 </body>
 </html>
