@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Tetris by Ketan Shukla</title>
+    <title>Python Tetris By Ketan Shukla</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -218,9 +218,10 @@
         const linesElement = document.getElementById('lines');
         const startButton = document.getElementById('start-button');
 
-        // Game variables
+        // Game state variables
         let board = [];
         let currentPiece = null;
+        let nextPiece = null;
         let currentPieceType = 0;
         let currentX = 0;
         let currentY = 0;
@@ -229,10 +230,11 @@
         let level = 1;
         let linesCleared = 0;
         let gameOver = false;
-        let paused = false;
-        let dropInterval = 1000; // milliseconds
+        let isPaused = false;
+        let dropInterval = 1000; // Initial drop speed (ms)
         let lastDropTime = 0;
-        let animationFrameId = null;
+        let animationId = null;
+        let lineClearAnimation = { active: false, lines: [], flashCount: 0, lastFlashTime: 0 };
         let gameRunning = false;
         let highScores = [];
 
@@ -254,8 +256,8 @@
         }
 
         // Draw a single block
-        function drawBlock(x, y, colorIdx, context = ctx, size = BLOCK_SIZE) {
-            context.fillStyle = COLORS[colorIdx];
+        function drawBlock(x, y, colorIdx, context = ctx, size = BLOCK_SIZE, color = COLORS[colorIdx]) {
+            context.fillStyle = color;
             context.fillRect(x * size, y * size, size, size);
             context.strokeStyle = "#FFFFFF";
             context.strokeRect(x * size, y * size, size, size);
@@ -269,15 +271,27 @@
             
             // Draw the board
             for (let y = 0; y < ROWS; y++) {
+                // Skip drawing this line if it's being cleared and we're on a "flash off" state
+                const isLineBeingCleared = lineClearAnimation.active && lineClearAnimation.lines.includes(y);
+                const isFlashVisible = lineClearAnimation.flashCount % 2 === 0; // Flash on even counts
+                
+                if (isLineBeingCleared && !isFlashVisible) {
+                    continue; // Skip this line during "flash off" state
+                }
+                
                 for (let x = 0; x < COLS; x++) {
                     if (board[y][x]) {
-                        drawBlock(x, y, board[y][x]);
+                        // If line is being cleared, use white for the flash effect
+                        const colorIndex = isLineBeingCleared ? 0 : board[y][x];
+                        const color = isLineBeingCleared ? "#FFFFFF" : COLORS[colorIndex];
+                        
+                        drawBlock(x, y, colorIndex, ctx, BLOCK_SIZE, color);
                     }
                 }
             }
             
-            // Draw current piece
-            if (currentPiece) {
+            // Draw current piece (only if not during line clear animation)
+            if (currentPiece && !lineClearAnimation.active) {
                 for (let y = 0; y < currentPiece.length; y++) {
                     for (let x = 0; x < currentPiece[y].length; x++) {
                         if (currentPiece[y][x]) {
@@ -369,8 +383,8 @@
             // Check if the new piece can be placed
             if (!isValidMove(0, 0)) {
                 gameOver = true;
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
                 }
                 alert("Game Over! Your score: " + score);
                 return false;
@@ -387,7 +401,7 @@
 
         // Move the piece left
         function moveLeft() {
-            if (!gameOver && !paused && isValidMove(-1, 0)) {
+            if (!gameOver && !isPaused && isValidMove(-1, 0)) {
                 currentX--;
                 draw();
             }
@@ -395,7 +409,7 @@
 
         // Move the piece right
         function moveRight() {
-            if (!gameOver && !paused && isValidMove(1, 0)) {
+            if (!gameOver && !isPaused && isValidMove(1, 0)) {
                 currentX++;
                 draw();
             }
@@ -403,7 +417,10 @@
 
         // Move the piece down
         function moveDown() {
-            if (gameOver || paused) return false;
+            if (gameOver || isPaused) return false;
+            
+            // Don't move pieces during line clear animation
+            if (lineClearAnimation.active) return false;
             
             if (isValidMove(0, 1)) {
                 currentY++;
@@ -417,7 +434,7 @@
 
         // Hard drop the piece
         function hardDrop() {
-            if (gameOver || paused) return;
+            if (gameOver || isPaused) return;
             
             while (moveDown()) {
                 // Keep moving down until it can't move anymore
@@ -426,7 +443,7 @@
 
         // Rotate the piece
         function rotate() {
-            if (gameOver || paused) return;
+            if (gameOver || isPaused) return;
             
             if (currentPieceType === 4) return; // O piece doesn't rotate
             
@@ -469,6 +486,9 @@
 
         // Check for completed lines
         function checkLines() {
+            // If animation is already active, don't check for new lines
+            if (lineClearAnimation.active) return;
+            
             const linesToClear = [];
             
             // Find completed lines
@@ -478,21 +498,21 @@
                 }
             }
             
-            // Clear lines and update score
+            // Start animation if there are lines to clear
             if (linesToClear.length > 0) {
-                // Update score based on number of lines cleared
+                // Setup animation state
+                lineClearAnimation.active = true;
+                lineClearAnimation.lines = linesToClear;
+                lineClearAnimation.flashCount = 0;
+                lineClearAnimation.lastFlashTime = performance.now();
+                
+                // Store the line count for scoring
                 const linesCount = linesToClear.length;
                 linesCleared += linesCount;
                 
                 // Score calculation based on level and lines cleared
                 const lineScores = [40, 100, 300, 1200]; // 1, 2, 3, 4 lines
                 score += lineScores[Math.min(linesCount, 4) - 1] * level;
-                
-                // Remove completed lines
-                for (const line of linesToClear.sort((a, b) => b - a)) {
-                    board.splice(line, 1);
-                    board.unshift(Array(COLS).fill(0));
-                }
                 
                 // Update level (every 10 lines)
                 level = Math.max(1, Math.floor(linesCleared / 10) + 1);
@@ -502,6 +522,35 @@
                 
                 // Update UI
                 updateScore();
+            }
+        }
+        
+        // Process line clear animation
+        function processLineClearAnimation(timestamp) {
+            if (!lineClearAnimation.active) return;
+            
+            // Flash every 100ms, for a total of 4 flashes
+            const flashInterval = 100;
+            
+            if (timestamp - lineClearAnimation.lastFlashTime > flashInterval) {
+                lineClearAnimation.flashCount++;
+                lineClearAnimation.lastFlashTime = timestamp;
+                
+                // After 4 flashes, remove the lines
+                if (lineClearAnimation.flashCount >= 4) {
+                    // Remove completed lines
+                    for (const line of lineClearAnimation.lines.sort((a, b) => b - a)) {
+                        board.splice(line, 1);
+                        board.unshift(Array(COLS).fill(0));
+                    }
+                    
+                    // Reset animation state
+                    lineClearAnimation.active = false;
+                    lineClearAnimation.lines = [];
+                }
+                
+                // Redraw the board with the current flash state
+                draw();
             }
         }
 
@@ -515,13 +564,13 @@
         // Toggle pause
         function togglePause() {
             if (!gameOver) {
-                paused = !paused;
+                isPaused = !isPaused;
             }
         }
 
         // Game loop
         function gameLoop(timestamp) {
-            if (!gameOver && !paused) {
+            if (!gameOver && !isPaused) {
                 // Check if it's time to drop the piece
                 if (timestamp - lastDropTime > dropInterval) {
                     moveDown();
@@ -529,9 +578,12 @@
                 }
             }
             
+            // Process line clear animation
+            processLineClearAnimation(timestamp);
+            
             // Continue the game loop
             if (!gameOver) {
-                animationFrameId = requestAnimationFrame(gameLoop);
+                animationId = requestAnimationFrame(gameLoop);
             }
         }
 
@@ -543,8 +595,10 @@
             level = 1;
             linesCleared = 0;
             gameOver = false;
-            paused = false;
+            isPaused = false;
             dropInterval = 1000;
+            lineClearAnimation.active = false;
+            lineClearAnimation.lines = [];
             
             // Update UI
             updateScore();
@@ -558,10 +612,10 @@
             
             // Start game loop
             lastDropTime = performance.now();
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
             }
-            animationFrameId = requestAnimationFrame(gameLoop);
+            animationId = requestAnimationFrame(gameLoop);
             
             // Update button text
             startButton.textContent = 'Restart Game';
@@ -570,8 +624,8 @@
 
         // Exit the game
         function exitGame() {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
             }
             gameOver = true;
             gameRunning = false;
