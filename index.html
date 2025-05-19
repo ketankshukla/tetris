@@ -616,9 +616,15 @@
                 })
                 .then(data => {
                     console.log('Received high scores data:', JSON.stringify(data));
+                    // Handle both possible response formats
                     if (data && data.highScores && Array.isArray(data.highScores)) {
                         highScores = data.highScores;
                         console.log('High scores loaded successfully:', highScores.length, 'scores');
+                        updateHighScoresTable();
+                    } else if (data && Array.isArray(data)) {
+                        // Handle case where API returns array directly
+                        highScores = data;
+                        console.log('High scores loaded successfully (array format):', highScores.length, 'scores');
                         updateHighScoresTable();
                     } else {
                         console.error('Invalid high scores data format:', data);
