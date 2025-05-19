@@ -2,58 +2,57 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-// In-memory cache for scores when file system is not available
-let scoresCache = { highScores: [] };
-
 // Helper to read the scores file
 const getScores = async () => {
   try {
-    // In production on Vercel, we can't rely on the file system for persistence
-    // So we'll use the in-memory cache if file operations fail
     const filePath = path.join(process.cwd(), 'scores.json');
     
     try {
       // Try to read the file
       const data = await fs.readFile(filePath, 'utf8');
-      const scores = JSON.parse(data);
-      // Update cache
-      scoresCache = scores;
-      console.log('Successfully read scores from file');
-      return scores;
+      return JSON.parse(data);
     } catch (fileError) {
-      console.log('Could not read from file, using in-memory cache', fileError.message);
+      console.log('Could not read from file:', fileError.message);
       
-      // If file doesn't exist, try to create it with the current cache
+      // If file doesn't exist, create it with empty scores
+      const defaultScores = { highScores: [] };
       try {
-        await fs.writeFile(filePath, JSON.stringify(scoresCache, null, 2), 'utf8');
+        await fs.writeFile(filePath, JSON.stringify(defaultScores, null, 2), 'utf8');
         console.log('Created new scores file');
+        return defaultScores;
       } catch (writeError) {
-        console.log('Could not create scores file', writeError.message);
+        console.log('Could not create scores file:', writeError.message);
+        return { highScores: [] };
       }
-      
-      return scoresCache;
     }
   } catch (error) {
     console.error('Error in getScores:', error);
-    return scoresCache;
+    return { highScores: [] };
   }
 };
 
 // Helper to write to the scores file
 const saveScores = async (scores) => {
   try {
-    // Update in-memory cache first
-    scoresCache.highScores = scores;
-    
-    // Then try to write to file
     const filePath = path.join(process.cwd(), 'scores.json');
+    
+    // Ensure scores is an array
+    if (!Array.isArray(scores)) {
+      console.error('Invalid scores format, expected array');
+      return false;
+    }
+    
+    // Create the data structure
+    const data = { highScores: scores };
+    
     try {
-      await fs.writeFile(filePath, JSON.stringify({ highScores: scores }, null, 2), 'utf8');
+      // Write to file
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
       console.log('Successfully saved scores to file');
       return true;
     } catch (fileError) {
-      console.log('Could not write to file, using in-memory cache only', fileError.message);
-      return true; // Return true anyway since we updated the cache
+      console.error('Could not write to file:', fileError.message);
+      return false;
     }
   } catch (error) {
     console.error('Error in saveScores:', error);
@@ -89,11 +88,22 @@ module.exports = async (req, res) => {
   // POST request - save scores
   if (req.method === 'POST') {
     try {
-      const scores = req.body;
-      const success = await saveScores(scores);
+      // Log the request body for debugging
+      console.log('Received POST request with body:', req.body);
+      
+      // Validate the input
+      if (!req.body || !Array.isArray(req.body)) {
+        console.error('Invalid request body format');
+        res.status(400).json({ error: 'Invalid request format. Expected array of scores.' });
+        return;
+      }
+      
+      const success = await saveScores(req.body);
       
       if (success) {
-        res.status(200).json({ success: true });
+        // Get the scores again to confirm they were saved
+        const scores = await getScores();
+        res.status(200).json({ success: true, scores });
       } else {
         res.status(500).json({ error: 'Failed to save scores' });
       }

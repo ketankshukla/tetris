@@ -639,6 +639,7 @@
             // Use relative URL that works both locally and on deployed site
             const apiUrl = window.location.origin + '/api/scores';
             console.log('Saving high scores to:', apiUrl);
+            console.log('Scores being sent:', JSON.stringify(highScores));
             
             fetch(apiUrl, {
                 method: 'POST',
@@ -656,8 +657,12 @@
             })
             .then(data => {
                 console.log('Scores saved successfully:', data);
-                // Reload scores after saving to ensure we have the latest data
-                loadHighScores();
+                
+                // Update high scores with the response data to ensure consistency
+                if (data && data.scores && data.scores.highScores) {
+                    highScores = data.scores.highScores;
+                    updateHighScoresTable();
+                }
             })
             .catch(error => {
                 console.error('Error saving scores:', error);
