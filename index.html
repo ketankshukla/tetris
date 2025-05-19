@@ -26,6 +26,7 @@
         h1 {
             color: #00bfff;
             margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
         }
 
         .game-container {
@@ -38,11 +39,13 @@
         #tetris-canvas {
             background-color: #000000;
             border: 2px solid #444444;
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
         }
 
         #next-piece-canvas {
             background-color: #000000;
             border: 1px solid #444444;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.2);
         }
 
         .game-info {
@@ -50,25 +53,93 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 20px;
+            width: 220px;
         }
 
         .score-container, .next-piece, .controls, .high-scores {
-            background-color: #1e1e1e;
-            padding: 15px;
-            border-radius: 5px;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            padding: 20px;
+            border-radius: 15px;
             width: 100%;
             box-sizing: border-box;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .score-container:hover, .next-piece:hover, .controls:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .score-container {
+            border-color: #ffcc00;
+        }
+
+        .next-piece {
+            border-color: #ff66cc;
+        }
+
+        .controls {
+            border-color: #66ff66;
         }
 
         .high-scores {
             margin-top: 20px;
             text-align: left;
+            border-color: #00bfff;
         }
 
-        .high-scores h3 {
-            text-align: center;
-            color: #00bfff;
+        .panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .score-container .panel-title {
+            color: #ffcc00;
+        }
+
+        .next-piece .panel-title {
+            color: #ff66cc;
+        }
+
+        .controls .panel-title {
+            color: #66ff66;
+        }
+
+        .high-scores .panel-title {
+            color: #00bfff;
+        }
+
+        .panel-emoji {
+            font-size: 24px;
+            margin-right: 8px;
+        }
+
+        .score-value {
+            font-size: 28px;
+            color: #ffcc00;
+            margin: 5px 0;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+
+        .level-value {
+            font-size: 20px;
+            color: #ff9900;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .lines-value {
+            font-size: 20px;
+            color: #66ff66;
+            margin: 5px 0;
+            font-weight: bold;
         }
 
         .high-scores-table {
@@ -91,24 +162,53 @@
             border-bottom: none;
         }
 
+        .controls-key {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            font-family: monospace;
+            border: 1px solid #555;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .controls-action {
+            color: #bbbbbb;
+        }
+
         .controls p {
-            margin: 5px 0;
-            font-size: 14px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
         }
 
         #start-button {
-            background-color: #00bfff;
+            background: linear-gradient(to right, #00bfff, #0099cc);
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
+            padding: 12px 30px;
+            font-size: 18px;
+            border-radius: 50px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
+            margin-bottom: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
 
         #start-button:hover {
-            background-color: #0099cc;
+            background: linear-gradient(to right, #0099cc, #0077aa);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6);
+        }
+
+        #start-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0, 191, 255, 0.4);
         }
 
         /* Custom Modal Dialog */
@@ -236,10 +336,12 @@
                 flex-direction: row;
                 flex-wrap: wrap;
                 justify-content: center;
+                width: 100%;
             }
             
             .score-container, .next-piece, .controls, .high-scores {
                 width: auto;
+                min-width: 200px;
             }
         }
     </style>
@@ -251,22 +353,54 @@
             <canvas id="tetris-canvas" width="300" height="600"></canvas>
             <div class="game-info">
                 <div class="score-container">
-                    <h2>Score: <span id="score">0</span></h2>
-                    <h3>Level: <span id="level">1</span></h3>
-                    <h3>Lines: <span id="lines">0</span></h3>
+                    <div class="panel-title">
+                        <span class="panel-emoji">🏆</span>
+                        Score
+                    </div>
+                    <div class="score-value" id="score">0</div>
+                    <div class="level-value">Level: <span id="level">1</span></div>
+                    <div class="lines-value">Lines: <span id="lines">0</span></div>
                 </div>
                 <div class="next-piece">
-                    <h3>Next Piece:</h3>
+                    <div class="panel-title">
+                        <span class="panel-emoji">🔜</span>
+                        Next Piece
+                    </div>
                     <canvas id="next-piece-canvas" width="100" height="100"></canvas>
                 </div>
                 <div class="controls">
-                    <h3>Controls:</h3>
-                    <p>← → : Move left/right</p>
-                    <p>↑ : Rotate</p>
-                    <p>↓ : Soft drop</p>
-                    <p>Space : Hard drop</p>
-                    <p>P : Pause</p>
-                    <p>Esc : Exit game</p>
+                    <div class="panel-title">
+                        <span class="panel-emoji">🎮</span>
+                        Controls
+                    </div>
+                    <p>
+                        <span class="controls-key">←</span>
+                        <span class="controls-action">Move left</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">→</span>
+                        <span class="controls-action">Move right</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">↑</span>
+                        <span class="controls-action">Rotate</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">↓</span>
+                        <span class="controls-action">Soft drop</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">Space</span>
+                        <span class="controls-action">Hard drop</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">P</span>
+                        <span class="controls-action">Pause</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">Esc</span>
+                        <span class="controls-action">Exit game</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -274,7 +408,10 @@
         
         <!-- High Scores Section -->
         <div class="high-scores">
-            <h3>High Scores</h3>
+            <div class="panel-title">
+                <span class="panel-emoji">📈</span>
+                High Scores
+            </div>
             <table class="high-scores-table" id="high-scores-table">
                 <thead>
                     <tr>
@@ -547,7 +684,7 @@
                 // Set title and emoji based on game end type
                 if (gameEndType === 'gameover') {
                     modalTitle.textContent = 'Game Over!';
-                    modalEmoji.textContent = '🎮';
+                    modalEmoji.textContent = '🏆';
                 } else {
                     modalTitle.textContent = 'Game Exited';
                     modalEmoji.textContent = '👋';
@@ -815,9 +952,9 @@
 
         // Update the score display
         function updateScore() {
-            scoreElement.textContent = score;
-            levelElement.textContent = level;
-            linesElement.textContent = linesCleared;
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('lines').textContent = linesCleared;
         }
 
         // Toggle pause
