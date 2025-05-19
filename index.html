@@ -601,25 +601,37 @@
             const apiUrl = window.location.origin + '/api/scores';
             console.log('Loading high scores from:', apiUrl);
             
-            fetch(apiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.highScores) {
-                        highScores = data.highScores;
-                        updateHighScoresTable();
-                        console.log('High scores loaded successfully:', highScores);
-                    } else {
-                        console.warn('High scores data format unexpected:', data);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading high scores:', error);
-                });
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.highScores) {
+                    highScores = data.highScores;
+                    updateHighScoresTable();
+                    console.log('High scores loaded successfully:', highScores);
+                } else {
+                    console.warn('High scores data format unexpected:', data);
+                    // Initialize with empty array if no valid data
+                    highScores = [];
+                    updateHighScoresTable();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading high scores:', error);
+                // Initialize with empty array on error
+                highScores = [];
+                updateHighScoresTable();
+            });
         }
         
         // Save high scores to server
@@ -632,6 +644,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(highScores)
             })
@@ -642,7 +655,7 @@
                 return response.json();
             })
             .then(data => {
-                console.log('Scores saved successfully');
+                console.log('Scores saved successfully:', data);
                 // Reload scores after saving to ensure we have the latest data
                 loadHighScores();
             })
@@ -920,18 +933,22 @@
                 score: score,
                 level: level,
                 lines: linesCleared,
-                date: new Date().toLocaleString(), // Format as date and time
-                originalIndex: highScores.length // Store original position for rank sorting
+                date: new Date().toLocaleString(),
+                originalIndex: highScores.length // Use current length as the original index
             };
             
-            // Add to high scores
+            console.log('Saving new score:', newScore);
+            
+            // Add to high scores array
             highScores.push(newScore);
             
             // Sort by score (highest first)
             highScores.sort((a, b) => b.score - a.score);
             
-            // Limit to top 10
-            highScores = highScores.slice(0, 10);
+            // Limit to top 10 scores
+            if (highScores.length > 10) {
+                highScores = highScores.slice(0, 10);
+            }
             
             // Save to server
             saveHighScoresToServer();

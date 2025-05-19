@@ -1,37 +1,62 @@
 // This is a serverless function for Vercel
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 
+// In-memory cache for scores when file system is not available
+let scoresCache = { highScores: [] };
+
 // Helper to read the scores file
-const getScores = () => {
+const getScores = async () => {
   try {
-    // In production, we'll need to use a database instead of the file system
-    // This is just for local development
+    // In production on Vercel, we can't rely on the file system for persistence
+    // So we'll use the in-memory cache if file operations fail
     const filePath = path.join(process.cwd(), 'scores.json');
     
-    // Check if file exists, if not create it
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify({ highScores: [] }, null, 2), 'utf8');
+    try {
+      // Try to read the file
+      const data = await fs.readFile(filePath, 'utf8');
+      const scores = JSON.parse(data);
+      // Update cache
+      scoresCache = scores;
+      console.log('Successfully read scores from file');
+      return scores;
+    } catch (fileError) {
+      console.log('Could not read from file, using in-memory cache', fileError.message);
+      
+      // If file doesn't exist, try to create it with the current cache
+      try {
+        await fs.writeFile(filePath, JSON.stringify(scoresCache, null, 2), 'utf8');
+        console.log('Created new scores file');
+      } catch (writeError) {
+        console.log('Could not create scores file', writeError.message);
+      }
+      
+      return scoresCache;
     }
-    
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
   } catch (error) {
-    console.error('Error reading scores:', error);
-    return { highScores: [] };
+    console.error('Error in getScores:', error);
+    return scoresCache;
   }
 };
 
 // Helper to write to the scores file
-const saveScores = (scores) => {
+const saveScores = async (scores) => {
   try {
-    // In production, we'll need to use a database instead of the file system
-    // This is just for local development
+    // Update in-memory cache first
+    scoresCache.highScores = scores;
+    
+    // Then try to write to file
     const filePath = path.join(process.cwd(), 'scores.json');
-    fs.writeFileSync(filePath, JSON.stringify({ highScores: scores }, null, 2), 'utf8');
-    return true;
+    try {
+      await fs.writeFile(filePath, JSON.stringify({ highScores: scores }, null, 2), 'utf8');
+      console.log('Successfully saved scores to file');
+      return true;
+    } catch (fileError) {
+      console.log('Could not write to file, using in-memory cache only', fileError.message);
+      return true; // Return true anyway since we updated the cache
+    }
   } catch (error) {
-    console.error('Error saving scores:', error);
+    console.error('Error in saveScores:', error);
     return false;
   }
 };
@@ -51,8 +76,13 @@ module.exports = async (req, res) => {
 
   // GET request - return scores
   if (req.method === 'GET') {
-    const scores = getScores();
-    res.status(200).json(scores);
+    try {
+      const scores = await getScores();
+      res.status(200).json(scores);
+    } catch (error) {
+      console.error('Error in GET handler:', error);
+      res.status(500).json({ error: 'Server error', message: error.message });
+    }
     return;
   }
 
@@ -60,7 +90,7 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     try {
       const scores = req.body;
-      const success = saveScores(scores);
+      const success = await saveScores(scores);
       
       if (success) {
         res.status(200).json({ success: true });
@@ -69,7 +99,7 @@ module.exports = async (req, res) => {
       }
     } catch (error) {
       console.error('Error in POST handler:', error);
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ error: 'Server error', message: error.message });
     }
     return;
   }
