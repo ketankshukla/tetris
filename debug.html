@@ -63,14 +63,28 @@
     <h1>Tetris API Debug Tool</h1>
     
     <div class="section">
-        <h2>1. Database Connection Test</h2>
+        <h2>1. Simple API Test</h2>
+        <p>This will test if the API framework is working at all.</p>
+        <button id="testSimpleApiBtn">Test Simple API</button>
+        <div id="simpleApiResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Environment Check</h2>
+        <p>This will check if environment variables are properly set.</p>
+        <button id="testEnvBtn">Check Environment Variables</button>
+        <div id="envResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Database Connection Test</h2>
         <p>This will test if the API can connect to the database and retrieve scores.</p>
         <button id="testDbBtn">Test Database Connection</button>
         <div id="dbResult"></div>
     </div>
     
     <div class="section">
-        <h2>2. API GET Request Test</h2>
+        <h2>4. API GET Request Test</h2>
         <p>This will test if the API endpoint is accessible and returning scores.</p>
         <input type="text" id="apiUrl" value="/api/scores" placeholder="API URL (e.g., /api/scores)">
         <button id="testGetBtn">Test GET Request</button>
@@ -78,7 +92,7 @@
     </div>
     
     <div class="section">
-        <h2>3. API POST Request Test</h2>
+        <h2>5. API POST Request Test</h2>
         <p>This will test if the API can save scores to the database.</p>
         <textarea id="testScores">[
   {
@@ -94,7 +108,7 @@
     </div>
     
     <div class="section">
-        <h2>4. Environment Information</h2>
+        <h2>6. Environment Information</h2>
         <p>Current URL: <span id="currentUrl"></span></p>
         <p>Origin: <span id="originUrl"></span></p>
         <p>Hostname: <span id="hostname"></span></p>
@@ -107,6 +121,65 @@
         document.getElementById('originUrl').textContent = window.location.origin;
         document.getElementById('hostname').textContent = window.location.hostname;
         document.getElementById('userAgent').textContent = navigator.userAgent;
+        
+        // Test simple API
+        document.getElementById('testSimpleApiBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('simpleApiResult');
+            resultDiv.innerHTML = '<p>Testing simple API endpoint...</p>';
+            
+            try {
+                const response = await fetch('/api/test', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Simple API test successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error testing simple API: ${error.message}</p>
+                    <p>This indicates that the API framework is not working correctly.</p>
+                `;
+            }
+        });
+        
+        // Test environment variables
+        document.getElementById('testEnvBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('envResult');
+            resultDiv.innerHTML = '<p>Checking environment variables...</p>';
+            
+            try {
+                const response = await fetch('/api/env-check', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Environment check successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error checking environment: ${error.message}</p>
+                `;
+            }
+        });
         
         // Test database connection
         document.getElementById('testDbBtn').addEventListener('click', async () => {
