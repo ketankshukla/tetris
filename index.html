@@ -111,6 +111,121 @@
             background-color: #0099cc;
         }
 
+        /* Custom Modal Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 400px;
+            padding: 25px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.3s;
+            border: 2px solid #00bfff;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: #00bfff;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .modal-emoji {
+            font-size: 40px;
+            margin: 15px 0;
+        }
+
+        .modal-score {
+            font-size: 28px;
+            color: #ffcc00;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .modal-level {
+            font-size: 18px;
+            color: #ff9900;
+            margin: 5px 0;
+        }
+
+        .modal-lines {
+            font-size: 18px;
+            color: #66ff66;
+            margin: 5px 0;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 2px solid #444;
+            background-color: #333;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .modal-input:focus {
+            border-color: #00bfff;
+        }
+
+        .modal-button {
+            background-color: #00bfff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+
+        .modal-button:hover {
+            background-color: #0099cc;
+        }
+
+        .modal-button.cancel {
+            background-color: #555;
+        }
+
+        .modal-button.cancel:hover {
+            background-color: #666;
+        }
+
         @media (max-width: 700px) {
             .game-container {
                 flex-direction: column;
@@ -179,6 +294,25 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Custom Modal Dialog -->
+    <div class="modal-overlay" id="score-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Game Over!</h2>
+                <div class="modal-emoji" id="modal-emoji">🏆</div>
+            </div>
+            <div class="modal-score">Score: <span id="modal-score">0</span></div>
+            <div class="modal-level">Level: <span id="modal-level">1</span></div>
+            <div class="modal-lines">Lines: <span id="modal-lines">0</span></div>
+            <input type="text" class="modal-input" id="player-name" placeholder="Enter your name" maxlength="20">
+            <div>
+                <button class="modal-button" id="save-score">Save Score</button>
+                <button class="modal-button cancel" id="skip-score">Skip</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Tetris game constants
@@ -386,11 +520,133 @@
                 if (animationId) {
                     cancelAnimationFrame(animationId);
                 }
-                alert("Game Over! Your score: " + score);
+                
+                // Save high score when game is over
+                saveHighScore("Game Over! Your score: " + score, 'gameover');
                 return false;
             }
             
             return true;
+        }
+        
+        // Save high score
+        function saveHighScore(message, gameEndType) {
+            gameRunning = false;
+            
+            // Only show score modal if score > 0
+            if (score > 0) {
+                // Set modal content based on game end type
+                const modalTitle = document.getElementById('modal-title');
+                const modalEmoji = document.getElementById('modal-emoji');
+                const modalScore = document.getElementById('modal-score');
+                const modalLevel = document.getElementById('modal-level');
+                const modalLines = document.getElementById('modal-lines');
+                const playerNameInput = document.getElementById('player-name');
+                const scoreModal = document.getElementById('score-modal');
+                
+                // Set title and emoji based on game end type
+                if (gameEndType === 'gameover') {
+                    modalTitle.textContent = 'Game Over!';
+                    modalEmoji.textContent = '🎮';
+                } else {
+                    modalTitle.textContent = 'Game Exited';
+                    modalEmoji.textContent = '👋';
+                }
+                
+                // Set score details
+                modalScore.textContent = score;
+                modalLevel.textContent = level;
+                modalLines.textContent = linesCleared;
+                
+                // Clear previous input
+                playerNameInput.value = '';
+                
+                // Show the modal
+                scoreModal.classList.add('active');
+                
+                // Focus on the input field
+                setTimeout(() => {
+                    playerNameInput.focus();
+                }, 300);
+                
+                // Handle save button click
+                document.getElementById('save-score').onclick = function() {
+                    const playerName = playerNameInput.value.trim();
+                    if (playerName) {
+                        savePlayerScore(playerName);
+                    }
+                    scoreModal.classList.remove('active');
+                    resetGameAfterEnd();
+                };
+                
+                // Handle skip button click
+                document.getElementById('skip-score').onclick = function() {
+                    scoreModal.classList.remove('active');
+                    resetGameAfterEnd();
+                };
+                
+                // Handle Enter key press in input field
+                playerNameInput.onkeydown = function(e) {
+                    if (e.key === 'Enter') {
+                        document.getElementById('save-score').click();
+                    }
+                };
+            } else {
+                // Just show a message if score is 0
+                alert(message);
+                resetGameAfterEnd();
+            }
+        }
+        
+        // Save player score to high scores
+        function savePlayerScore(playerName) {
+            // Create a new score entry
+            const newScore = {
+                name: playerName,
+                score: score,
+                level: level,
+                lines: linesCleared,
+                date: new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
+            };
+            
+            // Add to high scores
+            highScores.push(newScore);
+            
+            // Sort by score (highest first)
+            highScores.sort((a, b) => b.score - a.score);
+            
+            // Limit to top 10
+            highScores = highScores.slice(0, 10);
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
+                
+                // Update the high scores table
+                updateHighScoresTable();
+            } catch (e) {
+                console.error('Error saving high scores:', e);
+            }
+        }
+        
+        // Reset game after it ends
+        function resetGameAfterEnd() {
+            // Reset game state
+            initBoard();
+            score = 0;
+            level = 1;
+            linesCleared = 0;
+            currentPiece = null;
+            
+            // Clear the game board
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            nextCtx.fillStyle = "#000000";
+            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            // Update UI
+            updateScore();
+            startButton.textContent = 'Start Game';
         }
 
         // Generate the next piece
@@ -631,62 +887,9 @@
                 cancelAnimationFrame(animationId);
             }
             gameOver = true;
-            gameRunning = false;
             
-            // Only save score if game was actually played and score > 0
-            if (score > 0) {
-                // Record high score
-                const playerName = prompt("Game exited. Your score: " + score + "\nEnter your name for the high score:");
-                
-                if (playerName) {
-                    // Create a new score entry
-                    const newScore = {
-                        name: playerName,
-                        score: score,
-                        level: level,
-                        lines: linesCleared,
-                        date: new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
-                    };
-                    
-                    // Add to high scores
-                    highScores.push(newScore);
-                    
-                    // Sort by score (highest first)
-                    highScores.sort((a, b) => b.score - a.score);
-                    
-                    // Limit to top 10
-                    highScores = highScores.slice(0, 10);
-                    
-                    // Save to localStorage
-                    try {
-                        localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
-                        
-                        // Update the high scores table
-                        updateHighScoresTable();
-                    } catch (e) {
-                        console.error('Error saving high scores:', e);
-                    }
-                }
-            } else {
-                alert("Game exited.");
-            }
-            
-            // Reset game state
-            initBoard();
-            score = 0;
-            level = 1;
-            linesCleared = 0;
-            currentPiece = null;
-            
-            // Clear the game board
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            nextCtx.fillStyle = "#000000";
-            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-            
-            // Update UI
-            updateScore();
-            startButton.textContent = 'Start Game';
+            // Save high score when exiting game
+            saveHighScore("Game exited. Your score: " + score, 'exit');
         }
 
         // Update high scores table in the UI
