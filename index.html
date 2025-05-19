@@ -597,8 +597,8 @@
 
         // Load high scores from server
         function loadHighScores() {
-            // Use relative URL that works both locally and on deployed site
-            const apiUrl = '/api/scores';
+            // Use simple API endpoint
+            const apiUrl = '/api/simple-scores';
             console.log('Loading high scores from:', apiUrl);
             
             fetch(apiUrl)
@@ -638,8 +638,8 @@
         
         // Save high scores to server
         function saveHighScoresToServer() {
-            // Use relative URL that works both locally and on deployed site
-            const apiUrl = '/api/scores';
+            // Use simple API endpoint
+            const apiUrl = '/api/simple-scores';
             console.log('Saving high scores to:', apiUrl);
             console.log('Scores being sent:', JSON.stringify(highScores));
             
@@ -662,8 +662,8 @@
                 console.log('Scores saved successfully:', data);
                 
                 // Update high scores with the response data to ensure consistency
-                if (data && data.scores && data.scores.highScores) {
-                    highScores = data.scores.highScores;
+                if (data && data.highScores) {
+                    highScores = data.highScores;
                     updateHighScoresTable();
                 }
             })

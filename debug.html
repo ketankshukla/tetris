@@ -77,14 +77,28 @@
     </div>
     
     <div class="section">
-        <h2>3. Database Connection Test</h2>
+        <h2>3. Direct Database Test</h2>
+        <p>This will directly test the database connection without any complex logic.</p>
+        <button id="testDirectDbBtn">Test Direct Database Connection</button>
+        <div id="directDbResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Simple Scores API Test</h2>
+        <p>This will test the simplified scores API.</p>
+        <button id="testSimpleScoresBtn">Test Simple Scores API</button>
+        <div id="simpleScoresResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>5. Database Connection Test</h2>
         <p>This will test if the API can connect to the database and retrieve scores.</p>
         <button id="testDbBtn">Test Database Connection</button>
         <div id="dbResult"></div>
     </div>
     
     <div class="section">
-        <h2>4. API GET Request Test</h2>
+        <h2>6. API GET Request Test</h2>
         <p>This will test if the API endpoint is accessible and returning scores.</p>
         <input type="text" id="apiUrl" value="/api/scores" placeholder="API URL (e.g., /api/scores)">
         <button id="testGetBtn">Test GET Request</button>
@@ -92,7 +106,7 @@
     </div>
     
     <div class="section">
-        <h2>5. API POST Request Test</h2>
+        <h2>7. API POST Request Test</h2>
         <p>This will test if the API can save scores to the database.</p>
         <textarea id="testScores">[
   {
@@ -108,7 +122,7 @@
     </div>
     
     <div class="section">
-        <h2>6. Environment Information</h2>
+        <h2>8. Environment Information</h2>
         <p>Current URL: <span id="currentUrl"></span></p>
         <p>Origin: <span id="originUrl"></span></p>
         <p>Hostname: <span id="hostname"></span></p>
@@ -177,6 +191,64 @@
             } catch (error) {
                 resultDiv.innerHTML = `
                     <p class="error">Error checking environment: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // Test direct database connection
+        document.getElementById('testDirectDbBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('directDbResult');
+            resultDiv.innerHTML = '<p>Testing direct database connection...</p>';
+            
+            try {
+                const response = await fetch('/api/direct-db', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Direct database connection successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error with direct database connection: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // Test simple scores API
+        document.getElementById('testSimpleScoresBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('simpleScoresResult');
+            resultDiv.innerHTML = '<p>Testing simple scores API...</p>';
+            
+            try {
+                const response = await fetch('/api/simple-scores', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Simple scores API test successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error with simple scores API: ${error.message}</p>
                 `;
             }
         });
