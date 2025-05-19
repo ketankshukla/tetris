@@ -601,37 +601,32 @@
             const apiUrl = window.location.origin + '/api/scores';
             console.log('Loading high scores from:', apiUrl);
             
-            fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.highScores) {
-                    highScores = data.highScores;
-                    updateHighScoresTable();
-                    console.log('High scores loaded successfully:', highScores);
-                } else {
-                    console.warn('High scores data format unexpected:', data);
-                    // Initialize with empty array if no valid data
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received high scores data:', JSON.stringify(data));
+                    if (data && data.highScores && Array.isArray(data.highScores)) {
+                        highScores = data.highScores;
+                        console.log('High scores loaded successfully:', highScores.length, 'scores');
+                        updateHighScoresTable();
+                    } else {
+                        console.error('Invalid high scores data format:', data);
+                        // Initialize with empty array if data is invalid
+                        highScores = [];
+                        updateHighScoresTable();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading high scores:', error);
+                    // Initialize with empty array on error
                     highScores = [];
                     updateHighScoresTable();
-                }
-            })
-            .catch(error => {
-                console.error('Error loading high scores:', error);
-                // Initialize with empty array on error
-                highScores = [];
-                updateHighScoresTable();
-            });
+                });
         }
         
         // Save high scores to server

@@ -10,6 +10,7 @@ const getScores = async () => {
     try {
       // Try to read the file
       const data = await fs.readFile(filePath, 'utf8');
+      console.log('Successfully read scores from file:', data);
       return JSON.parse(data);
     } catch (fileError) {
       console.log('Could not read from file:', fileError.message);
@@ -48,7 +49,7 @@ const saveScores = async (scores) => {
     try {
       // Write to file
       await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-      console.log('Successfully saved scores to file');
+      console.log('Successfully saved scores to file:', JSON.stringify(data));
       return true;
     } catch (fileError) {
       console.error('Could not write to file:', fileError.message);
@@ -76,7 +77,9 @@ module.exports = async (req, res) => {
   // GET request - return scores
   if (req.method === 'GET') {
     try {
+      console.log('Received GET request for scores');
       const scores = await getScores();
+      console.log('Returning scores:', JSON.stringify(scores));
       res.status(200).json(scores);
     } catch (error) {
       console.error('Error in GET handler:', error);
@@ -89,7 +92,7 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     try {
       // Log the request body for debugging
-      console.log('Received POST request with body:', req.body);
+      console.log('Received POST request with body:', JSON.stringify(req.body));
       
       // Validate the input
       if (!req.body || !Array.isArray(req.body)) {
@@ -103,8 +106,10 @@ module.exports = async (req, res) => {
       if (success) {
         // Get the scores again to confirm they were saved
         const scores = await getScores();
+        console.log('Scores saved successfully, returning:', JSON.stringify(scores));
         res.status(200).json({ success: true, scores });
       } else {
+        console.error('Failed to save scores');
         res.status(500).json({ error: 'Failed to save scores' });
       }
     } catch (error) {
