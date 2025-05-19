@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris API Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tetris API Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Database Connection Test</h2>
+        <p>This will test if the API can connect to the database and retrieve scores.</p>
+        <button id="testDbBtn">Test Database Connection</button>
+        <div id="dbResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. API GET Request Test</h2>
+        <p>This will test if the API endpoint is accessible and returning scores.</p>
+        <input type="text" id="apiUrl" value="/api/scores" placeholder="API URL (e.g., /api/scores)">
+        <button id="testGetBtn">Test GET Request</button>
+        <div id="getResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. API POST Request Test</h2>
+        <p>This will test if the API can save scores to the database.</p>
+        <textarea id="testScores">[
+  {
+    "name": "Debug Test",
+    "score": 999,
+    "level": 9,
+    "lines": 99,
+    "date": "2025-05-19T23:00:00.000Z"
+  }
+]</textarea>
+        <button id="testPostBtn">Test POST Request</button>
+        <div id="postResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Environment Information</h2>
+        <p>Current URL: <span id="currentUrl"></span></p>
+        <p>Origin: <span id="originUrl"></span></p>
+        <p>Hostname: <span id="hostname"></span></p>
+        <p>User Agent: <span id="userAgent"></span></p>
+    </div>
+
+    <script>
+        // Display environment information
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('originUrl').textContent = window.location.origin;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        
+        // Test database connection
+        document.getElementById('testDbBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('dbResult');
+            resultDiv.innerHTML = '<p>Testing database connection...</p>';
+            
+            try {
+                const response = await fetch('/api/debug-db', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Database connection successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error testing database connection: ${error.message}</p>
+                    <p>This could indicate that:</p>
+                    <ul>
+                        <li>The API route doesn't exist</li>
+                        <li>There's an error in the serverless function</li>
+                        <li>The database connection string is invalid</li>
+                    </ul>
+                `;
+            }
+        });
+        
+        // Test GET request
+        document.getElementById('testGetBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('getResult');
+            const apiUrl = document.getElementById('apiUrl').value;
+            resultDiv.innerHTML = `<p>Testing GET request to ${apiUrl}...</p>`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const contentType = response.headers.get('content-type');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">GET request successful!</p>
+                        <p>Content-Type: ${contentType}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const text = await response.text();
+                    resultDiv.innerHTML = `
+                        <p class="error">Response is not JSON!</p>
+                        <p>Content-Type: ${contentType}</p>
+                        <p>First 500 characters of response:</p>
+                        <pre>${text.substring(0, 500)}${text.length > 500 ? '...' : ''}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error making GET request: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // Test POST request
+        document.getElementById('testPostBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('postResult');
+            const apiUrl = document.getElementById('apiUrl').value;
+            const testScoresText = document.getElementById('testScores').value;
+            
+            resultDiv.innerHTML = `<p>Testing POST request to ${apiUrl}...</p>`;
+            
+            try {
+                // Parse the JSON input
+                const testScores = JSON.parse(testScoresText);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testScores)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">POST request successful!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error making POST request: ${error.message}</p>
+                    <p>This could be due to:</p>
+                    <ul>
+                        <li>Invalid JSON in the test scores</li>
+                        <li>API endpoint error</li>
+                        <li>Database connection issue</li>
+                    </ul>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
