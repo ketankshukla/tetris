@@ -598,18 +598,13 @@
         // Load high scores from server
         function loadHighScores() {
             // Use relative URL that works both locally and on deployed site
-            const apiUrl = window.location.origin + '/api/scores';
+            const apiUrl = '/api/scores';
             console.log('Loading high scores from:', apiUrl);
             
             fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
                         console.warn('Network response was not ok:', response.status);
-                        // Try fallback to direct API path if first attempt fails
-                        if (window.location.hostname !== 'localhost') {
-                            console.log('Trying fallback API path...');
-                            return fetch('/api/scores');
-                        }
                         throw new Error('Network response was not ok: ' + response.status);
                     }
                     return response.json();
@@ -644,7 +639,7 @@
         // Save high scores to server
         function saveHighScoresToServer() {
             // Use relative URL that works both locally and on deployed site
-            const apiUrl = window.location.origin + '/api/scores';
+            const apiUrl = '/api/scores';
             console.log('Saving high scores to:', apiUrl);
             console.log('Scores being sent:', JSON.stringify(highScores));
             
@@ -659,18 +654,6 @@
             .then(response => {
                 if (!response.ok) {
                     console.warn('Network response was not ok:', response.status);
-                    // Try fallback to direct API path if first attempt fails
-                    if (window.location.hostname !== 'localhost') {
-                        console.log('Trying fallback API path...');
-                        return fetch('/api/scores', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify(highScores)
-                        });
-                    }
                     throw new Error('Network response was not ok: ' + response.status);
                 }
                 return response.json();
