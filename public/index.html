@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Tetris By Ketan Shukla!</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 1500px;
+            padding: 0;
+            margin: 40px auto 0;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 0;
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 220px;
+            height: 800px;
+            box-sizing: border-box;
+            overflow-y: hidden;
+            padding: 0;
+        }
+
+        .score-container, .next-piece, .controls {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .high-scores-column {
+            width: 600px;
+        }
+
+        .high-scores {
+            border-color: #00bfff;
+            height: 800px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .high-scores-table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: 550px;
+        }
+
+        .high-scores-table {
+            width: 100%;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+
+        .high-scores-table th,
+        .high-scores-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #444;
+            text-align: left;
+        }
+        
+        /* Remove fixed column widths to let the table adjust naturally */
+        .high-scores-table th:nth-child(1),
+        .high-scores-table td:nth-child(1),
+        .high-scores-table th:nth-child(2),
+        .high-scores-table td:nth-child(2),
+        .high-scores-table th:nth-child(3),
+        .high-scores-table td:nth-child(3),
+        .high-scores-table th:nth-child(4),
+        .high-scores-table td:nth-child(4),
+        .high-scores-table th:nth-child(5),
+        .high-scores-table td:nth-child(5) {
+            width: auto;
+            white-space: normal;
+            overflow: visible;
+        }
+
+        .high-scores-table th {
+            text-align: left;
+            color: #00bfff;
+            position: sticky;
+            top: 0;
+            background: #333333;
+            z-index: 1;
+            padding: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .high-scores-table th:hover {
+            background-color: #444444;
+        }
+        
+        .high-scores-table th.sort-asc::after {
+            content: ' ▲';
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .high-scores-table th.sort-desc::after {
+            content: ' ▼';
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .high-scores-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .score-container, .next-piece, .controls, .high-scores {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .score-container:hover, .next-piece:hover, .controls:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .score-container {
+            border-color: #ffcc00;
+        }
+
+        .next-piece {
+            border-color: #ff66cc;
+        }
+
+        .controls {
+            border-color: #66ff66;
+        }
+
+        .high-scores {
+            text-align: left;
+            border-color: #00bfff;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .score-container .panel-title {
+            color: #ffcc00;
+        }
+
+        .next-piece .panel-title {
+            color: #ff66cc;
+        }
+
+        .controls .panel-title {
+            color: #66ff66;
+        }
+
+        .high-scores .panel-title {
+            color: #00bfff;
+        }
+
+        .panel-emoji {
+            font-size: 24px;
+            margin-right: 8px;
+        }
+
+        .score-value {
+            font-size: 28px;
+            color: #ffcc00;
+            margin: 5px 0;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+
+        .level-value {
+            font-size: 20px;
+            color: #ff9900;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .lines-value {
+            font-size: 20px;
+            color: #66ff66;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .controls-key {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            font-family: monospace;
+            border: 1px solid #555;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .controls-action {
+            color: #bbbbbb;
+        }
+
+        .controls p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        #start-button {
+            background: linear-gradient(to right, #00bfff, #0099cc);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
+            margin-bottom: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        #start-button:hover {
+            background: linear-gradient(to right, #0099cc, #0077aa);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6);
+        }
+
+        #start-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0, 191, 255, 0.4);
+        }
+
+        /* Custom Modal Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 400px;
+            padding: 25px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.3s;
+            border: 2px solid #00bfff;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: #00bfff;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .modal-emoji {
+            font-size: 40px;
+            margin: 15px 0;
+        }
+
+        .modal-score {
+            font-size: 28px;
+            color: #ffcc00;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .modal-level {
+            font-size: 18px;
+            color: #ff9900;
+            margin: 5px 0;
+        }
+
+        .modal-lines {
+            font-size: 18px;
+            color: #66ff66;
+            margin: 5px 0;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 2px solid #444;
+            background-color: #333;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .modal-input:focus {
+            border-color: #00bfff;
+        }
+
+        .modal-button {
+            background-color: #00bfff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+
+        .modal-button:hover {
+            background-color: #0099cc;
+        }
+
+        .modal-button.cancel {
+            background-color: #555;
+        }
+
+        .modal-button.cancel:hover {
+            background-color: #666;
+        }
+
+        @media (max-width: 1000px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .game-info, .high-scores-column {
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            .high-scores {
+                height: auto;
+                margin-top: 20px;
+            }
+            
+            .high-scores-table-container {
+                max-height: 300px;
+            }
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #tetris-canvas {
+            background-color: #000000;
+            border: 2px solid #444444;
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+            border-radius: 0;
+            height: 800px;
+            width: 400px;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        #next-piece-canvas {
+            background-color: #000000;
+            border: 1px solid #444444;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-container">
+            <!-- Game Info Column -->
+            <div class="game-info">
+                <div class="score-container">
+                    <div class="panel-title">
+                        <span class="panel-emoji">🏆</span>
+                        Score
+                    </div>
+                    <div class="score-value" id="score">0</div>
+                    <div class="level-value">Level: <span id="level">1</span></div>
+                    <div class="lines-value">Lines: <span id="lines">0</span></div>
+                </div>
+                <div class="next-piece">
+                    <div class="panel-title">
+                        <span class="panel-emoji">🔜</span>
+                        Next Piece
+                    </div>
+                    <canvas id="next-piece-canvas" width="100" height="100"></canvas>
+                </div>
+                <div class="controls">
+                    <div class="panel-title">
+                        <span class="panel-emoji">🎮</span>
+                        Controls
+                    </div>
+                    <p>
+                        <span class="controls-key">S</span>
+                        <span class="controls-action">Start game</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">←</span>
+                        <span class="controls-action">Move left</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">→</span>
+                        <span class="controls-action">Move right</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">↑</span>
+                        <span class="controls-action">Rotate</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">↓</span>
+                        <span class="controls-action">Soft drop</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">Space</span>
+                        <span class="controls-action">Hard drop</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">P</span>
+                        <span class="controls-action">Pause</span>
+                    </p>
+                    <p>
+                        <span class="controls-key">Esc</span>
+                        <span class="controls-action">Exit game</span>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Game Board Column -->
+            <canvas id="tetris-canvas" width="400" height="800"></canvas>
+            
+            <!-- High Scores Column -->
+            <div class="high-scores-column">
+                <div class="high-scores">
+                    <div class="panel-title">
+                        <span class="panel-emoji">📈</span>
+                        High Scores
+                    </div>
+                    <div class="high-scores-table-container">
+                        <table class="high-scores-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="score">Score</th>
+                                    <th data-sort="level">Level</th>
+                                    <th data-sort="lines">Lines</th>
+                                    <th data-sort="date">Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="high-scores-body">
+                                <!-- High scores will be populated here -->
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">No high scores yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal Dialog -->
+    <div class="modal-overlay" id="score-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Game Over!</h2>
+                <div class="modal-emoji" id="modal-emoji">🏆</div>
+            </div>
+            <div class="modal-score">Score: <span id="modal-score">0</span></div>
+            <div class="modal-level">Level: <span id="modal-level">1</span></div>
+            <div class="modal-lines">Lines: <span id="modal-lines">0</span></div>
+            <input type="text" class="modal-input" id="player-name" placeholder="Enter your name" maxlength="20">
+            <div>
+                <button class="modal-button" id="save-score">Save Score</button>
+                <button class="modal-button cancel" id="skip-score" style="display: none;">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tetris game constants
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 40;
+        const COLORS = [
+            "#000000", // Empty space (black)
+            "#00FFFF", // I piece (cyan)
+            "#0000FF", // J piece (blue)
+            "#FFA500", // L piece (orange)
+            "#FFFF00", // O piece (yellow)
+            "#00FF00", // S piece (green)
+            "#800080", // T piece (purple)
+            "#FF0000"  // Z piece (red)
+        ];
+
+        // Tetromino shapes
+        const SHAPES = [
+            [], // Empty placeholder for indexing
+            [[1, 1, 1, 1]], // I
+            [[1, 0, 0], [1, 1, 1]], // J
+            [[0, 0, 1], [1, 1, 1]], // L
+            [[1, 1], [1, 1]], // O
+            [[0, 1, 1], [1, 1, 0]], // S
+            [[0, 1, 0], [1, 1, 1]], // T
+            [[1, 1, 0], [0, 1, 1]]  // Z
+        ];
+
+        // Game elements
+        const canvas = document.getElementById('tetris-canvas');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next-piece-canvas');
+        const nextCtx = nextCanvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const linesElement = document.getElementById('lines');
+
+        // Game state variables
+        let board = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let currentPieceType = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let nextPieceType = 0;
+        let score = 0;
+        let level = 1;
+        let linesCleared = 0;
+        let gameOver = false;
+        let isPaused = false;
+        let dropInterval = 1000; // Initial drop speed (ms)
+        let lastDropTime = 0;
+        let animationId = null;
+        let lineClearAnimation = { active: false, lines: [], flashCount: 0, lastFlashTime: 0 };
+        let gameRunning = false;
+        let highScores = [];
+        let canStartNewGame = false;
+
+        // Load high scores from server
+        function loadHighScores() {
+            // Use API endpoint
+            const apiUrl = '/api/scores';
+            console.log('Loading high scores from:', apiUrl);
+            
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        console.warn('Network response was not ok:', response.status);
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received high scores data:', JSON.stringify(data));
+                    // Handle both possible response formats
+                    if (data && data.highScores && Array.isArray(data.highScores)) {
+                        highScores = data.highScores;
+                        console.log('High scores loaded successfully:', highScores.length, 'scores');
+                        updateHighScoresTable();
+                    } else if (data && Array.isArray(data)) {
+                        // Handle case where API returns array directly
+                        highScores = data;
+                        console.log('High scores loaded successfully (array format):', highScores.length, 'scores');
+                        updateHighScoresTable();
+                    } else {
+                        console.error('Invalid high scores data format:', data);
+                        // Initialize with empty array if data is invalid
+                        highScores = [];
+                        updateHighScoresTable();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading high scores:', error);
+                    // Initialize with empty array on error
+                    highScores = [];
+                    updateHighScoresTable();
+                });
+        }
+        
+        // Save high scores to server
+        function saveHighScoresToServer() {
+            // Use API endpoint
+            const apiUrl = '/api/scores';
+            console.log('Saving high scores to:', apiUrl);
+            console.log('Scores being sent:', JSON.stringify(highScores));
+            
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(highScores)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.warn('Network response was not ok:', response.status);
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Scores saved successfully:', data);
+                
+                // Update high scores with the response data to ensure consistency
+                if (data && data.highScores) {
+                    highScores = data.highScores;
+                    updateHighScoresTable();
+                }
+            })
+            .catch(error => {
+                console.error('Error saving scores:', error);
+            });
+        }
+
+        // Initialize the board
+        function initBoard() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        }
+
+        // Draw a single block
+        function drawBlock(x, y, colorIdx, context = ctx, size = BLOCK_SIZE, color = COLORS[colorIdx]) {
+            context.fillStyle = color;
+            context.fillRect(x * size, y * size, size, size);
+            context.strokeStyle = "#000000";
+            context.strokeRect(x * size, y * size, size, size);
+        }
+
+        // Draw the board
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the board
+            for (let y = 0; y < ROWS; y++) {
+                // Skip drawing this line if it's being cleared and we're on a "flash off" state
+                const isLineBeingCleared = lineClearAnimation.active && lineClearAnimation.lines.includes(y);
+                const isFlashVisible = lineClearAnimation.flashCount % 2 === 0; // Flash on even counts
+                
+                if (isLineBeingCleared && !isFlashVisible) {
+                    continue; // Skip this line during "flash off" state
+                }
+                
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y][x]) {
+                        // If line is being cleared, use white for the flash effect
+                        const colorIndex = isLineBeingCleared ? 0 : board[y][x];
+                        const color = isLineBeingCleared ? "#FFFFFF" : COLORS[colorIndex];
+                        
+                        drawBlock(x, y, colorIndex, ctx, BLOCK_SIZE, color);
+                    }
+                }
+            }
+            
+            // Draw current piece (only if not during line clear animation)
+            if (currentPiece && !lineClearAnimation.active) {
+                for (let y = 0; y < currentPiece.length; y++) {
+                    for (let x = 0; x < currentPiece[y].length; x++) {
+                        if (currentPiece[y][x]) {
+                            drawBlock(currentX + x, currentY + y, currentPieceType);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draw the next piece
+        function drawNextPiece() {
+            // Clear next piece canvas
+            nextCtx.fillStyle = "#000000";
+            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            // Draw the next piece
+            const nextShape = SHAPES[nextPieceType];
+            const blockSize = 20; // Smaller blocks for the next piece preview
+            
+            // Center the piece in the canvas
+            const offsetX = (nextCanvas.width - nextShape[0].length * blockSize) / 2;
+            const offsetY = (nextCanvas.height - nextShape.length * blockSize) / 2;
+            
+            for (let y = 0; y < nextShape.length; y++) {
+                for (let x = 0; x < nextShape[y].length; x++) {
+                    if (nextShape[y][x]) {
+                        nextCtx.fillStyle = COLORS[nextPieceType];
+                        nextCtx.fillRect(
+                            offsetX + x * blockSize,
+                            offsetY + y * blockSize,
+                            blockSize,
+                            blockSize
+                        );
+                        nextCtx.strokeStyle = "#000000";
+                        nextCtx.strokeRect(
+                            offsetX + x * blockSize,
+                            offsetY + y * blockSize,
+                            blockSize,
+                            blockSize
+                        );
+                    }
+                }
+            }
+        }
+
+        // Check if the move is valid
+        function isValidMove(dx, dy, newPiece = currentPiece) {
+            if (!newPiece) return false;
+            
+            const newX = currentX + dx;
+            const newY = currentY + dy;
+            
+            for (let y = 0; y < newPiece.length; y++) {
+                for (let x = 0; x < newPiece[y].length; x++) {
+                    if (newPiece[y][x]) {
+                        // Check boundaries
+                        if (newX + x < 0 || newX + x >= COLS || newY + y < 0 || newY + y >= ROWS) {
+                            return false;
+                        }
+                        
+                        // Check collision with placed blocks
+                        if (newY + y >= 0 && board[newY + y][newX + x]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            return true;
+        }
+
+        // Generate a new piece
+        function generateNewPiece() {
+            if (nextPieceType === 0) {
+                // First piece of the game
+                currentPieceType = Math.floor(Math.random() * 7) + 1;
+            } else {
+                // Use the next piece
+                currentPieceType = nextPieceType;
+            }
+            
+            currentPiece = SHAPES[currentPieceType];
+            
+            // Starting position (centered at top)
+            currentX = Math.floor((COLS - currentPiece[0].length) / 2);
+            currentY = 0;
+            
+            // Check if the new piece can be placed
+            if (!isValidMove(0, 0)) {
+                gameOver = true;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                
+                // Save high score when game is over
+                saveHighScore("Game Over! Your score: " + score, 'gameover');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Save high score
+        function saveHighScore(message, gameEndType) {
+            gameRunning = false;
+            
+            // Only show score modal if score > 0
+            if (score > 0) {
+                // Set modal content based on game end type
+                const modalTitle = document.getElementById('modal-title');
+                const modalEmoji = document.getElementById('modal-emoji');
+                const modalScore = document.getElementById('modal-score');
+                const modalLevel = document.getElementById('modal-level');
+                const modalLines = document.getElementById('modal-lines');
+                const playerNameInput = document.getElementById('player-name');
+                const scoreModal = document.getElementById('score-modal');
+                
+                // Set title and emoji based on game end type
+                if (gameEndType === 'gameover') {
+                    modalTitle.textContent = 'Game Over!';
+                    modalEmoji.textContent = '🏆';
+                } else {
+                    modalTitle.textContent = 'Game Exited';
+                    modalEmoji.textContent = '👋';
+                }
+                
+                // Set score details
+                modalScore.textContent = score;
+                modalLevel.textContent = level;
+                modalLines.textContent = linesCleared;
+                
+                // Clear previous input and ensure input field is visible
+                playerNameInput.value = '';
+                playerNameInput.style.display = '';
+                document.getElementById('save-score').textContent = 'Save Score';
+                
+                // Show the modal
+                scoreModal.classList.add('active');
+                
+                // Focus on the input field
+                setTimeout(() => {
+                    playerNameInput.focus();
+                }, 300);
+                
+                // Handle save button click
+                document.getElementById('save-score').onclick = function() {
+                    const playerName = playerNameInput.value.trim();
+                    if (playerName) {
+                        savePlayerScore(playerName);
+                    }
+                    scoreModal.classList.remove('active');
+                    resetGameAfterEnd();
+                    
+                    // Set canStartNewGame immediately
+                    canStartNewGame = true;
+                };
+                
+                // Handle skip button click
+                document.getElementById('skip-score').style.display = 'none';
+                
+                // Handle Enter key press in input field
+                playerNameInput.onkeydown = function(e) {
+                    if (e.key === 'Enter') {
+                        document.getElementById('save-score').click();
+                    }
+                };
+            } else {
+                // Show the modal with a message for score = 0
+                const modalTitle = document.getElementById('modal-title');
+                const modalEmoji = document.getElementById('modal-emoji');
+                const modalScore = document.getElementById('modal-score');
+                const modalLevel = document.getElementById('modal-level');
+                const modalLines = document.getElementById('modal-lines');
+                const playerNameInput = document.getElementById('player-name');
+                const scoreModal = document.getElementById('score-modal');
+                const saveButton = document.getElementById('save-score');
+                
+                // Set title and emoji based on game end type
+                modalTitle.textContent = 'Game Over';
+                modalEmoji.textContent = '👋';
+                
+                // Set score details
+                modalScore.textContent = score;
+                modalLevel.textContent = level;
+                modalLines.textContent = linesCleared;
+                
+                // Hide the input field for score = 0
+                playerNameInput.style.display = 'none';
+                
+                // Change save button to close button
+                saveButton.textContent = 'Close';
+                saveButton.onclick = function() {
+                    scoreModal.classList.remove('active');
+                    resetGameAfterEnd();
+                    
+                    // Set canStartNewGame immediately
+                    canStartNewGame = true;
+                    
+                    // Reset the button for next time
+                    saveButton.textContent = 'Save Score';
+                    playerNameInput.style.display = '';
+                    
+                    // Restore original save button function
+                    saveButton.onclick = function() {
+                        const playerName = playerNameInput.value.trim();
+                        if (playerName) {
+                            savePlayerScore(playerName);
+                        }
+                        scoreModal.classList.remove('active');
+                        resetGameAfterEnd();
+                    };
+                };
+                
+                // Show the modal
+                scoreModal.classList.add('active');
+            }
+        }
+        
+        // Save player score to high scores
+        function savePlayerScore(playerName) {
+            // Create a new score entry
+            const newScore = {
+                name: playerName,
+                score: score,
+                level: level,
+                lines: linesCleared,
+                date: new Date().toLocaleString(),
+                originalIndex: highScores.length // Use current length as the original index
+            };
+            
+            console.log('Saving new score:', newScore);
+            
+            // Add to high scores array
+            highScores.push(newScore);
+            
+            // Sort by score (highest first)
+            highScores.sort((a, b) => b.score - a.score);
+            
+            // Limit to top 10 scores
+            if (highScores.length > 10) {
+                highScores = highScores.slice(0, 10);
+            }
+            
+            // Save to server
+            saveHighScoresToServer();
+            
+            // Update the high scores table
+            updateHighScoresTable();
+        }
+        
+        // Reset game after it ends
+        function resetGameAfterEnd() {
+            // Reset game state
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            currentPiece = null;
+            nextPiece = null;
+            currentX = 0;
+            currentY = 0;
+            score = 0;
+            level = 1;
+            linesCleared = 0;
+            gameOver = false;
+            isPaused = false;
+            
+            // Reset UI
+            updateScore();
+            updateLevel();
+            updateLines();
+            
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            // Show welcome screen
+            showWelcomeScreen();
+            
+            // Set gameRunning to false but don't auto-restart
+            gameRunning = false;
+        }
+
+        // Generate the next piece
+        function generateNextPiece() {
+            nextPieceType = Math.floor(Math.random() * 7) + 1;
+            drawNextPiece();
+        }
+
+        // Move the piece left
+        function moveLeft() {
+            if (!gameOver && !isPaused && isValidMove(-1, 0)) {
+                currentX--;
+                draw();
+            }
+        }
+
+        // Move the piece right
+        function moveRight() {
+            if (!gameOver && !isPaused && isValidMove(1, 0)) {
+                currentX++;
+                draw();
+            }
+        }
+
+        // Move the piece down
+        function moveDown() {
+            if (gameOver || isPaused) return false;
+            
+            // Don't move pieces during line clear animation
+            if (lineClearAnimation.active) return false;
+            
+            if (isValidMove(0, 1)) {
+                currentY++;
+                draw();
+                return true;
+            } else {
+                lockPiece();
+                return false;
+            }
+        }
+
+        // Hard drop the piece
+        function hardDrop() {
+            if (gameOver || isPaused) return;
+            
+            while (moveDown()) {
+                // Keep moving down until it can't move anymore
+            }
+        }
+
+        // Rotate the piece
+        function rotate() {
+            if (gameOver || isPaused) return;
+            
+            if (currentPieceType === 4) return; // O piece doesn't rotate
+            
+            // Transpose and reverse rows to rotate 90 degrees clockwise
+            const rows = currentPiece.length;
+            const cols = currentPiece[0].length;
+            
+            const rotated = Array.from({ length: cols }, () => Array(rows).fill(0));
+            
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    rotated[x][rows - 1 - y] = currentPiece[y][x];
+                }
+            }
+            
+            if (isValidMove(0, 0, rotated)) {
+                currentPiece = rotated;
+                draw();
+            }
+        }
+
+        // Lock the piece in place
+        function lockPiece() {
+            // Add the current piece to the board
+            for (let y = 0; y < currentPiece.length; y++) {
+                for (let x = 0; x < currentPiece[y].length; x++) {
+                    if (currentPiece[y][x]) {
+                        board[currentY + y][currentX + x] = currentPieceType;
+                    }
+                }
+            }
+            
+            // Check for completed lines
+            checkLines();
+            
+            // Generate new pieces
+            generateNewPiece();
+            generateNextPiece();
+        }
+
+        // Check for completed lines
+        function checkLines() {
+            // If animation is already active, don't check for new lines
+            if (lineClearAnimation.active) return;
+            
+            const linesToClear = [];
+            
+            // Find completed lines
+            for (let y = 0; y < ROWS; y++) {
+                if (board[y].every(cell => cell !== 0)) {
+                    linesToClear.push(y);
+                }
+            }
+            
+            // Start animation if there are lines to clear
+            if (linesToClear.length > 0) {
+                // Setup animation state
+                lineClearAnimation.active = true;
+                lineClearAnimation.lines = linesToClear;
+                lineClearAnimation.flashCount = 0;
+                lineClearAnimation.lastFlashTime = performance.now();
+                
+                // Store the line count for scoring
+                const linesCount = linesToClear.length;
+                linesCleared += linesCount;
+                
+                // Score calculation based on level and lines cleared
+                const lineScores = [40, 100, 300, 1200]; // 1, 2, 3, 4 lines
+                score += lineScores[Math.min(linesCount, 4) - 1] * level;
+                
+                // Update level (every 10 lines)
+                level = Math.max(1, Math.floor(linesCleared / 10) + 1);
+                
+                // Update drop speed based on level
+                dropInterval = Math.max(100, 1000 - (level - 1) * 50);
+                
+                // Update UI
+                updateScore();
+            }
+        }
+        
+        // Process line clear animation
+        function processLineClearAnimation(timestamp) {
+            if (!lineClearAnimation.active) return;
+            
+            // Flash every 100ms, for a total of 4 flashes
+            const flashInterval = 100;
+            
+            if (timestamp - lineClearAnimation.lastFlashTime > flashInterval) {
+                lineClearAnimation.flashCount++;
+                lineClearAnimation.lastFlashTime = timestamp;
+                
+                // After 4 flashes, remove the lines
+                if (lineClearAnimation.flashCount >= 4) {
+                    // Remove completed lines
+                    for (const line of lineClearAnimation.lines.sort((a, b) => b - a)) {
+                        board.splice(line, 1);
+                        board.unshift(Array(COLS).fill(0));
+                    }
+                    
+                    // Reset animation state
+                    lineClearAnimation.active = false;
+                    lineClearAnimation.lines = [];
+                    
+                    // Check for new completed lines that may have formed after pieces fell
+                    setTimeout(checkLines, 0); // Use setTimeout to avoid recursion issues
+                }
+                
+                // Redraw the board with the current flash state
+                draw();
+            }
+        }
+
+        // Update the score display
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('lines').textContent = linesCleared;
+        }
+
+        // Toggle pause
+        function togglePause() {
+            if (!gameOver) {
+                isPaused = !isPaused;
+            }
+        }
+
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!gameOver && !isPaused) {
+                // Check if it's time to drop the piece
+                if (timestamp - lastDropTime > dropInterval) {
+                    moveDown();
+                    lastDropTime = timestamp;
+                }
+            }
+            
+            // Process line clear animation
+            processLineClearAnimation(timestamp);
+            
+            // Continue the game loop
+            if (!gameOver) {
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Initialize the game
+        function init() {
+            // Load high scores
+            loadHighScores();
+            
+            // Update high scores table
+            updateHighScoresTable();
+            
+            // Set up sorting for high scores table
+            setupHighScoresSorting();
+            
+            // Display welcome message and instructions
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#00bfff';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('TETRIS GAME', canvas.width / 2, canvas.height / 3);
+            
+            // Draw instructions
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '18px Arial';
+            ctx.fillText('Press S to start', canvas.width / 2, canvas.height / 2);
+            
+            // Draw controls summary
+            ctx.font = '14px Arial';
+            ctx.fillText('← → : Move', canvas.width / 2, canvas.height / 2 + 40);
+            ctx.fillText('↑ : Rotate', canvas.width / 2, canvas.height / 2 + 65);
+            ctx.fillText('↓ : Soft Drop', canvas.width / 2, canvas.height / 2 + 90);
+            ctx.fillText('Space : Hard Drop', canvas.width / 2, canvas.height / 2 + 115);
+            ctx.fillText('P : Pause', canvas.width / 2, canvas.height / 2 + 140);
+            ctx.fillText('Esc : Exit', canvas.width / 2, canvas.height / 2 + 165);
+            
+            // Initialize game state
+            gameRunning = false;
+            canStartNewGame = true;
+            
+            // Clear any existing animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        // Show welcome screen
+        function showWelcomeScreen() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#00bfff';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('TETRIS GAME', canvas.width / 2, canvas.height / 3);
+            
+            // Draw instructions
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '18px Arial';
+            ctx.fillText('Press S to start', canvas.width / 2, canvas.height / 2);
+            
+            // Draw controls summary
+            ctx.font = '14px Arial';
+            ctx.fillText('← → : Move', canvas.width / 2, canvas.height / 2 + 40);
+            ctx.fillText('↑ : Rotate', canvas.width / 2, canvas.height / 2 + 65);
+            ctx.fillText('↓ : Soft Drop', canvas.width / 2, canvas.height / 2 + 90);
+            ctx.fillText('Space : Hard Drop', canvas.width / 2, canvas.height / 2 + 115);
+            ctx.fillText('P : Pause', canvas.width / 2, canvas.height / 2 + 140);
+            ctx.fillText('Esc : Exit', canvas.width / 2, canvas.height / 2 + 165);
+        }
+
+        // Start the game
+        function startGame() {
+            if (!gameRunning) {
+                // Reset game state
+                score = 0;
+                level = 1;
+                linesCleared = 0;
+                gameOver = false;
+                isPaused = false;
+                dropInterval = 1000;
+                lineClearAnimation.active = false;
+                lineClearAnimation.lines = [];
+                
+                // Initialize the board
+                initBoard();
+                
+                // Generate first pieces
+                generateNewPiece();
+                generateNextPiece();
+                
+                // Reset the last drop time
+                lastDropTime = performance.now();
+                
+                // Start the game loop
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                animationId = requestAnimationFrame(gameLoop);
+                
+                // Update game state
+                gameRunning = true;
+                
+                // Reload high scores to ensure we have the latest data
+                loadHighScores();
+                
+                // Update displays
+                updateScore();
+                draw();
+                drawNextPiece();
+            }
+        }
+        
+        // Exit the game
+        function exitGame() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            gameOver = true;
+            
+            // Clear the canvas immediately
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            // Save high score when exiting game
+            saveHighScore("Game exited. Your score: " + score, 'exit');
+        }
+        
+        // Update high scores table in the UI
+        function updateHighScoresTable() {
+            const tableBody = document.getElementById('high-scores-body');
+            
+            if (highScores.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No high scores yet</td></tr>';
+                return;
+            }
+            
+            // Clear the table
+            tableBody.innerHTML = '';
+            
+            // Add each high score as a row
+            highScores.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                
+                // Create and append cells
+                const nameCell = document.createElement('td');
+                nameCell.textContent = entry.name;
+                row.appendChild(nameCell);
+                
+                const scoreCell = document.createElement('td');
+                scoreCell.textContent = entry.score;
+                row.appendChild(scoreCell);
+                
+                const levelCell = document.createElement('td');
+                levelCell.textContent = entry.level;
+                row.appendChild(levelCell);
+                
+                const linesCell = document.createElement('td');
+                linesCell.textContent = entry.lines;
+                row.appendChild(linesCell);
+                
+                const dateCell = document.createElement('td');
+                dateCell.textContent = entry.date;
+                row.appendChild(dateCell);
+                
+                // Add the row to the table
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Add sorting functionality to high scores table
+        function setupHighScoresSorting() {
+            // Add click handlers directly to each th element
+            document.querySelector('th[data-sort="name"]').onclick = function() { sortTable('name'); };
+            document.querySelector('th[data-sort="score"]').onclick = function() { sortTable('score'); };
+            document.querySelector('th[data-sort="level"]').onclick = function() { sortTable('level'); };
+            document.querySelector('th[data-sort="lines"]').onclick = function() { sortTable('lines'); };
+            document.querySelector('th[data-sort="date"]').onclick = function() { sortTable('date'); };
+            
+            // Set initial sort (score descending)
+            document.querySelector('th[data-sort="score"]').classList.add('sort-desc');
+        }
+        
+        // Global sort state
+        let currentSortColumn = 'score';
+        let currentSortDirection = 'desc';
+        
+        // Sort the high scores table by a column
+        function sortTable(column) {
+            console.log('Sorting by:', column);
+            
+            // Get all th elements
+            const headers = document.querySelectorAll('.high-scores-table th');
+            
+            // Toggle direction if same column clicked
+            if (column === currentSortColumn) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'desc'; // Default to descending
+            }
+            
+            // Remove sort classes from all headers
+            headers.forEach(header => {
+                header.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Add sort class to current header
+            const currentHeader = document.querySelector(`th[data-sort="${column}"]`);
+            currentHeader.classList.add(`sort-${currentSortDirection}`);
+            
+            // Sort high scores based on column and direction
+            sortHighScores(column, currentSortDirection);
+            
+            // Update the table
+            updateHighScoresTable();
+        }
+        
+        // Sort high scores based on column and direction
+        function sortHighScores(column, direction) {
+            const multiplier = direction === 'asc' ? 1 : -1;
+            
+            // Add index property to each score entry before sorting
+            highScores.forEach((score, index) => {
+                score.originalIndex = index;
+            });
+            
+            highScores.sort((a, b) => {
+                let valueA, valueB;
+                
+                // Handle special case for rank (use original index)
+                if (column === 'rank') {
+                    return (a.originalIndex - b.originalIndex) * multiplier;
+                }
+                
+                // Get values based on column
+                switch (column) {
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        return valueA.localeCompare(valueB) * multiplier;
+                    case 'score':
+                        return (a.score - b.score) * multiplier;
+                    case 'level':
+                        return (a.level - b.level) * multiplier;
+                    case 'lines':
+                        return (a.lines - b.lines) * multiplier;
+                    case 'date':
+                        // Handle date comparison
+                        return (new Date(a.date) - new Date(b.date)) * multiplier;
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Save to server after sorting
+            saveHighScoresToServer();
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (event) => {
+            // Check if modal is active and Enter key is pressed
+            const scoreModal = document.getElementById('score-modal');
+            if (scoreModal.classList.contains('active') && event.key === 'Enter') {
+                // If input field is visible and has focus, let the input's own handler work
+                const playerNameInput = document.getElementById('player-name');
+                if (document.activeElement === playerNameInput) {
+                    return;
+                }
+                
+                // Otherwise, click the save button
+                document.getElementById('save-score').click();
+                
+                // Prevent default action and stop propagation
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            
+            // Only start game with S if no modal is active
+            if ((event.key === 's' || event.key === 'S') && !gameRunning && !scoreModal.classList.contains('active')) {
+                // Force canStartNewGame to true when S is pressed
+                canStartNewGame = true;
+                startGame();
+                return;
+            }
+            
+            if (gameRunning) {
+                if (event.key === 'p' || event.key === 'P') {
+                    togglePause();
+                    return;
+                }
+                
+                if (isPaused) {
+                    return;
+                }
+                
+                if (event.key === 'Escape') {
+                    exitGame();
+                    return;
+                }
+                
+                if (event.key === 'ArrowLeft') {
+                    moveLeft();
+                } else if (event.key === 'ArrowRight') {
+                    moveRight();
+                } else if (event.key === 'ArrowUp') {
+                    rotate();
+                } else if (event.key === 'ArrowDown') {
+                    moveDown();
+                } else if (event.key === ' ') {
+                    hardDrop();
+                }
+            }
+        });
+
+        // Load high scores immediately when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHighScores();
+            init();
+        });
+    </script>
+</body>
+</html>

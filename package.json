@@ -3,15 +3,18 @@
   "version": "1.0.0",
   "description": "JavaScript Tetris Game",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "build": "echo 'No build step required'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.6.1",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
+    "next": "^14.0.4",
     "node-fetch": "^2.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "serve": "^14.0.0"
   },
   "devDependencies": {
