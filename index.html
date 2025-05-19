@@ -595,16 +595,54 @@
         let highScores = [];
         let canStartNewGame = false;
 
+        // Load high scores from server
+        function loadHighScores() {
+            fetch('/api/scores')
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.highScores) {
+                        highScores = data.highScores;
+                        updateHighScoresTable();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading high scores:', error);
+                });
+        }
+        
+        // Save high scores to server
+        function saveHighScoresToServer() {
+            fetch('/api/scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(highScores)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Scores saved successfully');
+            })
+            .catch(error => {
+                console.error('Error saving scores:', error);
+            });
+        }
+
         // Try to load high scores from localStorage
         try {
             const savedScores = localStorage.getItem('tetrisHighScores');
             if (savedScores) {
                 highScores = JSON.parse(savedScores);
-                updateHighScoresTable();
+                
+                // Migrate existing scores to server
+                saveHighScoresToServer();
+                
+                // Clear localStorage after migration
+                localStorage.removeItem('tetrisHighScores');
+                console.log('Migrated scores from localStorage to server');
             }
         } catch (e) {
-            console.error('Error loading high scores:', e);
-            highScores = [];
+            console.error('Error loading high scores from localStorage:', e);
         }
 
         // Initialize the board
@@ -892,15 +930,11 @@
             // Limit to top 10
             highScores = highScores.slice(0, 10);
             
-            // Save to localStorage
-            try {
-                localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
-                
-                // Update the high scores table
-                updateHighScoresTable();
-            } catch (e) {
-                console.error('Error saving high scores:', e);
-            }
+            // Save to server
+            saveHighScoresToServer();
+            
+            // Update the high scores table
+            updateHighScoresTable();
         }
         
         // Reset game after it ends
@@ -1133,14 +1167,7 @@
         // Initialize the game
         function init() {
             // Load high scores
-            try {
-                const savedScores = localStorage.getItem('tetrisHighScores');
-                if (savedScores) {
-                    highScores = JSON.parse(savedScores);
-                }
-            } catch (e) {
-                console.error('Error loading high scores:', e);
-            }
+            loadHighScores();
             
             // Update high scores table
             updateHighScoresTable();
@@ -1378,12 +1405,8 @@
                 }
             });
             
-            // Save to localStorage after sorting
-            try {
-                localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
-            } catch (e) {
-                console.error('Error saving high scores:', e);
-            }
+            // Save to server after sorting
+            saveHighScoresToServer();
         }
 
         // Event listeners
