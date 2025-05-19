@@ -2,6 +2,14 @@
   "highScores": [
     {
       "name": "Ketan",
+      "score": 140,
+      "level": 1,
+      "lines": 3,
+      "date": "5/19/2025, 2:17:39 PM",
+      "originalIndex": 3
+    },
+    {
+      "name": "Ketan",
       "score": 80,
       "level": 1,
       "lines": 2,
@@ -15,6 +23,14 @@
       "lines": 1,
       "date": "5/19/2025, 1:53:56 PM",
       "originalIndex": 0
+    },
+    {
+      "name": "Ketan",
+      "score": 40,
+      "level": 1,
+      "lines": 1,
+      "date": "5/19/2025, 2:14:10 PM",
+      "originalIndex": 2
     }
   ]
 }

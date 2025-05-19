@@ -8,6 +8,12 @@ const getScores = () => {
     // In production, we'll need to use a database instead of the file system
     // This is just for local development
     const filePath = path.join(process.cwd(), 'scores.json');
+    
+    // Check if file exists, if not create it
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify({ highScores: [] }, null, 2), 'utf8');
+    }
+    
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {

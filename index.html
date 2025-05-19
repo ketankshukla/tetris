@@ -603,6 +603,7 @@
                     if (data && data.highScores) {
                         highScores = data.highScores;
                         updateHighScoresTable();
+                        console.log('High scores loaded successfully:', highScores);
                     }
                 })
                 .catch(error => {
@@ -622,28 +623,19 @@
             .then(response => response.json())
             .then(data => {
                 console.log('Scores saved successfully');
+                // Reload scores after saving to ensure we have the latest data
+                loadHighScores();
             })
             .catch(error => {
                 console.error('Error saving scores:', error);
             });
         }
 
-        // Try to load high scores from localStorage
-        try {
-            const savedScores = localStorage.getItem('tetrisHighScores');
-            if (savedScores) {
-                highScores = JSON.parse(savedScores);
-                
-                // Migrate existing scores to server
-                saveHighScoresToServer();
-                
-                // Clear localStorage after migration
-                localStorage.removeItem('tetrisHighScores');
-                console.log('Migrated scores from localStorage to server');
-            }
-        } catch (e) {
-            console.error('Error loading high scores from localStorage:', e);
-        }
+        // Load high scores immediately when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHighScores();
+            init();
+        });
 
         // Initialize the board
         function initBoard() {
@@ -841,10 +833,8 @@
                     scoreModal.classList.remove('active');
                     resetGameAfterEnd();
                     
-                    // Add a small delay before allowing Enter to start a new game
-                    setTimeout(() => {
-                        canStartNewGame = true;
-                    }, 500);
+                    // Set canStartNewGame immediately
+                    canStartNewGame = true;
                 };
                 
                 // Handle skip button click
@@ -885,10 +875,8 @@
                     scoreModal.classList.remove('active');
                     resetGameAfterEnd();
                     
-                    // Add a small delay before allowing Enter to start a new game
-                    setTimeout(() => {
-                        canStartNewGame = true;
-                    }, 500);
+                    // Set canStartNewGame immediately
+                    canStartNewGame = true;
                     
                     // Reset the button for next time
                     saveButton.textContent = 'Save Score';
@@ -918,7 +906,8 @@
                 score: score,
                 level: level,
                 lines: linesCleared,
-                date: new Date().toLocaleString() // Format as date and time
+                date: new Date().toLocaleString(), // Format as date and time
+                originalIndex: highScores.length // Store original position for rank sorting
             };
             
             // Add to high scores
@@ -1202,6 +1191,12 @@
             // Initialize game state
             gameRunning = false;
             canStartNewGame = true;
+            
+            // Clear any existing animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
         }
         
         // Show welcome screen
@@ -1232,37 +1227,46 @@
 
         // Start the game
         function startGame() {
-            // Reset game state
-            initBoard();
-            score = 0;
-            level = 1;
-            linesCleared = 0;
-            gameOver = false;
-            isPaused = false;
-            dropInterval = 1000;
-            lineClearAnimation.active = false;
-            lineClearAnimation.lines = [];
-            
-            // Update UI
-            updateScore();
-            
-            // Generate first pieces
-            generateNewPiece();
-            generateNextPiece();
-            
-            // Draw the initial state
-            draw();
-            
-            // Start game loop
-            lastDropTime = performance.now();
-            if (animationId) {
-                cancelAnimationFrame(animationId);
+            if (!gameRunning) {
+                // Reset game state
+                score = 0;
+                level = 1;
+                linesCleared = 0;
+                gameOver = false;
+                isPaused = false;
+                dropInterval = 1000;
+                lineClearAnimation.active = false;
+                lineClearAnimation.lines = [];
+                
+                // Initialize the board
+                initBoard();
+                
+                // Generate first pieces
+                generateNewPiece();
+                generateNextPiece();
+                
+                // Reset the last drop time
+                lastDropTime = performance.now();
+                
+                // Start the game loop
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                animationId = requestAnimationFrame(gameLoop);
+                
+                // Update game state
+                gameRunning = true;
+                
+                // Reload high scores to ensure we have the latest data
+                loadHighScores();
+                
+                // Update displays
+                updateScore();
+                draw();
+                drawNextPiece();
             }
-            animationId = requestAnimationFrame(gameLoop);
-            
-            gameRunning = true;
         }
-
+        
         // Exit the game
         function exitGame() {
             if (animationId) {
@@ -1277,7 +1281,7 @@
             // Save high score when exiting game
             saveHighScore("Game exited. Your score: " + score, 'exit');
         }
-
+        
         // Update high scores table in the UI
         function updateHighScoresTable() {
             const tableBody = document.getElementById('high-scores-body');
@@ -1431,6 +1435,8 @@
             
             // Only start game with S if no modal is active
             if ((event.key === 's' || event.key === 'S') && !gameRunning && !scoreModal.classList.contains('active')) {
+                // Force canStartNewGame to true when S is pressed
+                canStartNewGame = true;
                 startGame();
                 return;
             }
