@@ -1,0 +1,12 @@
+{
+  "name": "tetris-game",
+  "version": "1.0.0",
+  "description": "JavaScript Tetris Game",
+  "scripts": {
+    "dev": "serve .",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "serve": "^14.0.0"
+  }
+}
