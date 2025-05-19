@@ -106,6 +106,29 @@
             top: 0;
             background: #1a1a1a;
             z-index: 1;
+            background-color: #333333;
+            color: #FFFFFF;
+            padding: 8px;
+            cursor: pointer;
+        }
+        
+        .high-scores-table th:hover {
+            background-color: #444444;
+        }
+        
+        .high-scores-table th::after {
+            content: '';
+            display: inline-block;
+            width: 0;
+            margin-left: 5px;
+        }
+        
+        .high-scores-table th.sort-asc::after {
+            content: '▲';
+        }
+        
+        .high-scores-table th.sort-desc::after {
+            content: '▼';
         }
 
         .high-scores-table tr:last-child td {
@@ -434,7 +457,7 @@
                         Controls
                     </div>
                     <p>
-                        <span class="controls-key">Enter</span>
+                        <span class="controls-key">S</span>
                         <span class="controls-action">Start game</span>
                     </p>
                     <p>
@@ -482,12 +505,12 @@
                         <table class="high-scores-table" id="high-scores-table">
                             <thead>
                                 <tr>
-                                    <th>Rank</th>
-                                    <th>Name</th>
-                                    <th>Score</th>
-                                    <th>Level</th>
-                                    <th>Lines</th>
-                                    <th>Date</th>
+                                    <th data-sort="rank">Rank</th>
+                                    <th data-sort="name">Name</th>
+                                    <th data-sort="score">Score</th>
+                                    <th data-sort="level">Level</th>
+                                    <th data-sort="lines">Lines</th>
+                                    <th data-sort="date">Date & Time</th>
                                 </tr>
                             </thead>
                             <tbody id="high-scores-body">
@@ -516,7 +539,7 @@
             <input type="text" class="modal-input" id="player-name" placeholder="Enter your name" maxlength="20">
             <div>
                 <button class="modal-button" id="save-score">Save Score</button>
-                <button class="modal-button cancel" id="skip-score">Skip</button>
+                <button class="modal-button cancel" id="skip-score" style="display: none;">Skip</button>
             </div>
         </div>
     </div>
@@ -577,6 +600,7 @@
         let lineClearAnimation = { active: false, lines: [], flashCount: 0, lastFlashTime: 0 };
         let gameRunning = false;
         let highScores = [];
+        let canStartNewGame = false;
 
         // Try to load high scores from localStorage
         try {
@@ -764,8 +788,10 @@
                 modalLevel.textContent = level;
                 modalLines.textContent = linesCleared;
                 
-                // Clear previous input
+                // Clear previous input and ensure input field is visible
                 playerNameInput.value = '';
+                playerNameInput.style.display = '';
+                document.getElementById('save-score').textContent = 'Save Score';
                 
                 // Show the modal
                 scoreModal.classList.add('active');
@@ -783,13 +809,15 @@
                     }
                     scoreModal.classList.remove('active');
                     resetGameAfterEnd();
+                    
+                    // Add a small delay before allowing Enter to start a new game
+                    setTimeout(() => {
+                        canStartNewGame = true;
+                    }, 500);
                 };
                 
                 // Handle skip button click
-                document.getElementById('skip-score').onclick = function() {
-                    scoreModal.classList.remove('active');
-                    resetGameAfterEnd();
-                };
+                document.getElementById('skip-score').style.display = 'none';
                 
                 // Handle Enter key press in input field
                 playerNameInput.onkeydown = function(e) {
@@ -798,9 +826,56 @@
                     }
                 };
             } else {
-                // Just show a message if score is 0
-                alert(message);
-                resetGameAfterEnd();
+                // Show the modal with a message for score = 0
+                const modalTitle = document.getElementById('modal-title');
+                const modalEmoji = document.getElementById('modal-emoji');
+                const modalScore = document.getElementById('modal-score');
+                const modalLevel = document.getElementById('modal-level');
+                const modalLines = document.getElementById('modal-lines');
+                const playerNameInput = document.getElementById('player-name');
+                const scoreModal = document.getElementById('score-modal');
+                const saveButton = document.getElementById('save-score');
+                
+                // Set title and emoji based on game end type
+                modalTitle.textContent = 'Game Over';
+                modalEmoji.textContent = '👋';
+                
+                // Set score details
+                modalScore.textContent = score;
+                modalLevel.textContent = level;
+                modalLines.textContent = linesCleared;
+                
+                // Hide the input field for score = 0
+                playerNameInput.style.display = 'none';
+                
+                // Change save button to close button
+                saveButton.textContent = 'Close';
+                saveButton.onclick = function() {
+                    scoreModal.classList.remove('active');
+                    resetGameAfterEnd();
+                    
+                    // Add a small delay before allowing Enter to start a new game
+                    setTimeout(() => {
+                        canStartNewGame = true;
+                    }, 500);
+                    
+                    // Reset the button for next time
+                    saveButton.textContent = 'Save Score';
+                    playerNameInput.style.display = '';
+                    
+                    // Restore original save button function
+                    saveButton.onclick = function() {
+                        const playerName = playerNameInput.value.trim();
+                        if (playerName) {
+                            savePlayerScore(playerName);
+                        }
+                        scoreModal.classList.remove('active');
+                        resetGameAfterEnd();
+                    };
+                };
+                
+                // Show the modal
+                scoreModal.classList.add('active');
             }
         }
         
@@ -812,7 +887,7 @@
                 score: score,
                 level: level,
                 lines: linesCleared,
-                date: new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
+                date: new Date().toLocaleString() // Format as date and time
             };
             
             // Add to high scores
@@ -838,20 +913,31 @@
         // Reset game after it ends
         function resetGameAfterEnd() {
             // Reset game state
-            initBoard();
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            currentPiece = null;
+            nextPiece = null;
+            currentX = 0;
+            currentY = 0;
             score = 0;
             level = 1;
             linesCleared = 0;
-            currentPiece = null;
+            gameOver = false;
+            isPaused = false;
             
-            // Clear the game board
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            nextCtx.fillStyle = "#000000";
-            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-            
-            // Update UI
+            // Reset UI
             updateScore();
+            updateLevel();
+            updateLines();
+            
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            // Show welcome screen
+            showWelcomeScreen();
+            
+            // Set gameRunning to false but don't auto-restart
+            gameRunning = false;
         }
 
         // Generate the next piece
@@ -1069,7 +1155,7 @@
             // Draw instructions
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '18px Arial';
-            ctx.fillText('Press ENTER to start', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('Press S to start', canvas.width / 2, canvas.height / 2);
             
             // Draw controls summary
             ctx.font = '14px Arial';
@@ -1079,6 +1165,10 @@
             ctx.fillText('Space : Hard Drop', canvas.width / 2, canvas.height / 2 + 115);
             ctx.fillText('P : Pause', canvas.width / 2, canvas.height / 2 + 140);
             ctx.fillText('Esc : Exit', canvas.width / 2, canvas.height / 2 + 165);
+            
+            // Initialize game state
+            gameRunning = false;
+            canStartNewGame = true;
         }
 
         // Start the game
@@ -1120,6 +1210,10 @@
                 cancelAnimationFrame(animationId);
             }
             gameOver = true;
+            
+            // Clear the canvas immediately
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
             
             // Save high score when exiting game
             saveHighScore("Game exited. Your score: " + score, 'exit');
@@ -1170,44 +1264,142 @@
                 tableBody.appendChild(row);
             });
         }
+        
+        // Add sorting functionality to high scores table
+        function setupHighScoresSorting() {
+            const table = document.getElementById('high-scores-table');
+            const headers = table.querySelectorAll('th');
+            let currentSort = { column: 'score', direction: 'desc' };
+            
+            // Add click event to all headers
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.dataset.sort;
+                    
+                    // Toggle sort direction if clicking the same column
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'desc'; // Default to descending
+                    }
+                    
+                    // Remove sort classes from all headers
+                    headers.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    
+                    // Add sort class to current header
+                    header.classList.add(`sort-${currentSort.direction}`);
+                    
+                    // Sort the high scores
+                    sortHighScores(currentSort.column, currentSort.direction);
+                    
+                    // Update the table
+                    updateHighScoresTable();
+                });
+            });
+        }
+        
+        // Sort high scores based on column and direction
+        function sortHighScores(column, direction) {
+            const multiplier = direction === 'asc' ? 1 : -1;
+            
+            highScores.sort((a, b) => {
+                let valueA, valueB;
+                
+                // Handle special case for rank (use array index)
+                if (column === 'rank') {
+                    return 0; // Rank is always determined by array order
+                }
+                
+                // Get values based on column
+                switch (column) {
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        return valueA.localeCompare(valueB) * multiplier;
+                    case 'score':
+                        return (a.score - b.score) * multiplier;
+                    case 'level':
+                        return (a.level - b.level) * multiplier;
+                    case 'lines':
+                        return (a.lines - b.lines) * multiplier;
+                    case 'date':
+                        valueA = new Date(a.date);
+                        valueB = new Date(b.date);
+                        return (valueA - valueB) * multiplier;
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Save to localStorage after sorting
+            try {
+                localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
+            } catch (e) {
+                console.error('Error saving high scores:', e);
+            }
+        }
 
         // Event listeners
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && !gameRunning) {
+            // Check if modal is active and Enter key is pressed
+            const scoreModal = document.getElementById('score-modal');
+            if (scoreModal.classList.contains('active') && event.key === 'Enter') {
+                // If input field is visible and has focus, let the input's own handler work
+                const playerNameInput = document.getElementById('player-name');
+                if (document.activeElement === playerNameInput) {
+                    return;
+                }
+                
+                // Otherwise, click the save button
+                document.getElementById('save-score').click();
+                
+                // Prevent default action and stop propagation
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            
+            // Only start game with S if no modal is active
+            if ((event.key === 's' || event.key === 'S') && !gameRunning && !scoreModal.classList.contains('active')) {
                 startGame();
-            }
-            
-            if (!gameRunning) return;
-            
-            if (event.key === 'p' || event.key === 'P') {
-                togglePause();
                 return;
             }
             
-            if (isPaused) {
-                return;
-            }
-            
-            if (event.key === 'Escape') {
-                exitGame();
-                return;
-            }
-            
-            if (event.key === 'ArrowLeft') {
-                moveLeft();
-            } else if (event.key === 'ArrowRight') {
-                moveRight();
-            } else if (event.key === 'ArrowUp') {
-                rotate();
-            } else if (event.key === 'ArrowDown') {
-                moveDown();
-            } else if (event.key === ' ') {
-                hardDrop();
+            if (gameRunning) {
+                if (event.key === 'p' || event.key === 'P') {
+                    togglePause();
+                    return;
+                }
+                
+                if (isPaused) {
+                    return;
+                }
+                
+                if (event.key === 'Escape') {
+                    exitGame();
+                    return;
+                }
+                
+                if (event.key === 'ArrowLeft') {
+                    moveLeft();
+                } else if (event.key === 'ArrowRight') {
+                    moveRight();
+                } else if (event.key === 'ArrowUp') {
+                    rotate();
+                } else if (event.key === 'ArrowDown') {
+                    moveDown();
+                } else if (event.key === ' ') {
+                    hardDrop();
+                }
             }
         });
 
         // Initialize the game
         init();
+        setupHighScoresSorting();
     </script>
 </body>
 </html>
