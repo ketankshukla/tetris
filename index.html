@@ -91,9 +91,7 @@
         .high-scores-table th:nth-child(4),
         .high-scores-table td:nth-child(4),
         .high-scores-table th:nth-child(5),
-        .high-scores-table td:nth-child(5),
-        .high-scores-table th:nth-child(6),
-        .high-scores-table td:nth-child(6) {
+        .high-scores-table td:nth-child(5) {
             width: auto;
             white-space: normal;
             overflow: visible;
@@ -501,7 +499,6 @@
                         <table class="high-scores-table">
                             <thead>
                                 <tr>
-                                    <th data-sort="rank">Rank</th>
                                     <th data-sort="name">Name</th>
                                     <th data-sort="score">Score</th>
                                     <th data-sort="level">Level</th>
@@ -512,7 +509,7 @@
                             <tbody id="high-scores-body">
                                 <!-- High scores will be populated here -->
                                 <tr>
-                                    <td colspan="6" style="text-align: center;">No high scores yet</td>
+                                    <td colspan="5" style="text-align: center;">No high scores yet</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1259,7 +1256,7 @@
             const tableBody = document.getElementById('high-scores-body');
             
             if (highScores.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No high scores yet</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No high scores yet</td></tr>';
                 return;
             }
             
@@ -1271,10 +1268,6 @@
                 const row = document.createElement('tr');
                 
                 // Create and append cells
-                const rankCell = document.createElement('td');
-                rankCell.textContent = index + 1;
-                row.appendChild(rankCell);
-                
                 const nameCell = document.createElement('td');
                 nameCell.textContent = entry.name;
                 row.appendChild(nameCell);
@@ -1303,7 +1296,6 @@
         // Add sorting functionality to high scores table
         function setupHighScoresSorting() {
             // Add click handlers directly to each th element
-            document.querySelector('th[data-sort="rank"]').onclick = function() { sortTable('rank'); };
             document.querySelector('th[data-sort="name"]').onclick = function() { sortTable('name'); };
             document.querySelector('th[data-sort="score"]').onclick = function() { sortTable('score'); };
             document.querySelector('th[data-sort="level"]').onclick = function() { sortTable('level'); };
@@ -1342,7 +1334,7 @@
             const currentHeader = document.querySelector(`th[data-sort="${column}"]`);
             currentHeader.classList.add(`sort-${currentSortDirection}`);
             
-            // Sort the high scores
+            // Sort high scores based on column and direction
             sortHighScores(column, currentSortDirection);
             
             // Update the table
@@ -1353,12 +1345,17 @@
         function sortHighScores(column, direction) {
             const multiplier = direction === 'asc' ? 1 : -1;
             
+            // Add index property to each score entry before sorting
+            highScores.forEach((score, index) => {
+                score.originalIndex = index;
+            });
+            
             highScores.sort((a, b) => {
                 let valueA, valueB;
                 
-                // Handle special case for rank (use array index)
+                // Handle special case for rank (use original index)
                 if (column === 'rank') {
-                    return 0; // Rank is always determined by array order
+                    return (a.originalIndex - b.originalIndex) * multiplier;
                 }
                 
                 // Get values based on column
