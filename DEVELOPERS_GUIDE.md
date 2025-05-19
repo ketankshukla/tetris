@@ -213,6 +213,107 @@ export default async function handler(req, res) {
    - Navigate to "Environment Variables"
    - Add the same variables you use locally
 
+### Viewing Database Records
+
+To view the records in your Neon database, you can create a utility script like the one below. Save it as `view-db-records.js` in your project root:
+
+```javascript
+// Script to view records in the Neon database
+require('dotenv').config();
+const { neon } = require('@neondatabase/serverless');
+
+async function viewDatabaseRecords() {
+  try {
+    console.log('Connecting to Neon database...');
+    
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      console.error('Error: DATABASE_URL environment variable is not set.');
+      console.log('Make sure you have a .env file with DATABASE_URL or set it in your environment.');
+      process.exit(1);
+    }
+    
+    // Connect to database
+    const sql = neon(process.env.DATABASE_URL);
+    console.log('Connected to database.');
+    
+    // Check if your table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'your_table_name'
+      );
+    `;
+    
+    const tableExists = tableCheck[0].exists;
+    
+    if (!tableExists) {
+      console.log('The table does not exist in the database.');
+      process.exit(0);
+    }
+    
+    // Get all records from your table
+    console.log('Retrieving records...');
+    const records = await sql`
+      SELECT * FROM your_table_name 
+      ORDER BY id DESC
+    `;
+    
+    // Display the records
+    console.log('\n===== DATABASE RECORDS =====');
+    console.log('Total records:', records.length);
+    console.log('---------------------------');
+    
+    if (records.length === 0) {
+      console.log('No records found in the database.');
+    } else {
+      // Format and display each record
+      records.forEach((record, index) => {
+        console.log(`${index + 1}.`, JSON.stringify(record, null, 2));
+      });
+    }
+    
+    console.log('============================\n');
+    
+    // Display table structure
+    console.log('Table structure:');
+    const columns = await sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'your_table_name'
+    `;
+    
+    columns.forEach(column => {
+      console.log(`- ${column.column_name} (${column.data_type})`);
+    });
+    
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+  }
+}
+
+// Run the function
+viewDatabaseRecords();
+```
+
+To use this script:
+
+1. Replace `'your_table_name'` with your actual table name
+2. Run the script with Node.js:
+   ```
+   node view-db-records.js
+   ```
+
+This will display:
+- All records in the table
+- The total number of records
+- The table structure (column names and data types)
+
+This script is particularly useful for:
+- Verifying that data is being saved correctly
+- Debugging database issues
+- Checking if the database schema is as expected
+
 ## Deployment Process
 
 1. **Prepare Your Project**:
