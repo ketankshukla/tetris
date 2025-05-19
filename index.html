@@ -604,6 +604,12 @@
             fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
+                        console.warn('Network response was not ok:', response.status);
+                        // Try fallback to direct API path if first attempt fails
+                        if (window.location.hostname !== 'localhost') {
+                            console.log('Trying fallback API path...');
+                            return fetch('/api/scores');
+                        }
                         throw new Error('Network response was not ok: ' + response.status);
                     }
                     return response.json();
@@ -646,6 +652,19 @@
             })
             .then(response => {
                 if (!response.ok) {
+                    console.warn('Network response was not ok:', response.status);
+                    // Try fallback to direct API path if first attempt fails
+                    if (window.location.hostname !== 'localhost') {
+                        console.log('Trying fallback API path...');
+                        return fetch('/api/scores', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(highScores)
+                        });
+                    }
                     throw new Error('Network response was not ok: ' + response.status);
                 }
                 return response.json();
