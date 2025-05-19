@@ -547,6 +547,9 @@
                     // Reset animation state
                     lineClearAnimation.active = false;
                     lineClearAnimation.lines = [];
+                    
+                    // Check for new completed lines that may have formed after pieces fell
+                    setTimeout(checkLines, 0); // Use setTimeout to avoid recursion issues
                 }
                 
                 // Redraw the board with the current flash state
