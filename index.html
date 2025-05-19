@@ -599,7 +599,7 @@
         function drawBlock(x, y, colorIdx, context = ctx, size = BLOCK_SIZE, color = COLORS[colorIdx]) {
             context.fillStyle = color;
             context.fillRect(x * size, y * size, size, size);
-            context.strokeStyle = "#FFFFFF";
+            context.strokeStyle = "#000000";
             context.strokeRect(x * size, y * size, size, size);
         }
 
@@ -666,7 +666,7 @@
                             blockSize,
                             blockSize
                         );
-                        nextCtx.strokeStyle = "#FFFFFF";
+                        nextCtx.strokeStyle = "#000000";
                         nextCtx.strokeRect(
                             offsetX + x * blockSize,
                             offsetY + y * blockSize,
