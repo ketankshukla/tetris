@@ -20,10 +20,13 @@ export default async function handler(req, res) {
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
+      console.error('DATABASE_URL not found in environment variables');
       return res.status(500).json({
         error: 'DATABASE_URL not found in environment variables'
       });
     }
+    
+    console.log('API route: /api/scores - Method:', req.method);
     
     // Connect to database
     const sql = neon(DATABASE_URL);
@@ -36,18 +39,23 @@ export default async function handler(req, res) {
         score INTEGER NOT NULL,
         level INTEGER NOT NULL,
         lines INTEGER NOT NULL,
-        date TEXT NOT NULL
+        date TEXT NOT NULL,
+        original_index INTEGER
       )
     `;
     
     // GET request - return scores
     if (req.method === 'GET') {
+      console.log('Processing GET request for scores');
+      
       // Get scores from database
       const scores = await sql`
         SELECT * FROM high_scores 
         ORDER BY score DESC 
         LIMIT 100
       `;
+      
+      console.log(`Retrieved ${scores.length} scores from database`);
       
       // Return scores
       return res.status(200).json({
@@ -56,43 +64,69 @@ export default async function handler(req, res) {
           score: row.score,
           level: row.level,
           lines: row.lines,
-          date: row.date
+          date: row.date,
+          originalIndex: row.original_index
         }))
       });
     }
     
     // POST request - save scores
     if (req.method === 'POST') {
+      console.log('Processing POST request for scores');
+      
       // Validate request body
-      if (!req.body || !Array.isArray(req.body)) {
+      let highScores = [];
+      if (req.body && Array.isArray(req.body)) {
+        console.log('Received scores in array format');
+        highScores = req.body;
+      } else if (req.body && Array.isArray(req.body.highScores)) {
+        console.log('Received scores in {highScores: [...]} format');
+        highScores = req.body.highScores;
+      } else {
+        console.error('Invalid request body format:', req.body);
         return res.status(400).json({
-          error: 'Invalid request format. Expected array of scores.'
+          error: 'Invalid request format',
+          message: 'Expected array of scores or { highScores: [...] }'
         });
       }
       
-      const scores = req.body;
+      console.log(`Processing ${highScores.length} scores`);
       
-      // Clear existing scores
-      await sql`TRUNCATE TABLE high_scores`;
-      
-      // Insert new scores
-      if (scores.length > 0) {
-        for (const score of scores) {
+      // Save each score, checking for duplicates
+      for (let i = 0; i < highScores.length; i++) {
+        const score = highScores[i];
+        
+        // Check if this score already exists in the database
+        const existingScores = await sql`
+          SELECT * FROM high_scores 
+          WHERE player_name = ${score.name} 
+          AND score = ${score.score} 
+          AND level = ${score.level} 
+          AND lines = ${score.lines} 
+          AND date = ${score.date}
+        `;
+        
+        if (existingScores.length === 0) {
+          console.log(`Inserting new score for ${score.name}: ${score.score}`);
           await sql`
             INSERT INTO high_scores (
               player_name, 
               score, 
               level, 
               lines, 
-              date
+              date,
+              original_index
             ) VALUES (
               ${score.name}, 
               ${score.score}, 
               ${score.level}, 
               ${score.lines}, 
-              ${score.date}
+              ${score.date},
+              ${score.originalIndex !== undefined ? score.originalIndex : i}
             )
           `;
+        } else {
+          console.log(`Score for ${score.name}: ${score.score} already exists, skipping`);
         }
       }
       
@@ -103,6 +137,8 @@ export default async function handler(req, res) {
         LIMIT 100
       `;
       
+      console.log(`Returning ${updatedScores.length} scores after update`);
+      
       // Return success response
       return res.status(200).json({
         success: true,
@@ -111,7 +147,8 @@ export default async function handler(req, res) {
           score: row.score,
           level: row.level,
           lines: row.lines,
-          date: row.date
+          date: row.date,
+          originalIndex: row.original_index
         }))
       });
     }

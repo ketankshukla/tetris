@@ -36,7 +36,7 @@ async function viewDatabaseRecords() {
     console.log('Retrieving high scores...');
     const scores = await sql`
       SELECT * FROM high_scores 
-      ORDER BY score DESC
+      ORDER BY score DESC, id ASC
     `;
     
     // Display the records
@@ -47,26 +47,25 @@ async function viewDatabaseRecords() {
     if (scores.length === 0) {
       console.log('No high scores found in the database.');
     } else {
-      // Format and display each record
-      scores.forEach((score, index) => {
-        console.log(`${index + 1}. ${score.player_name}: ${score.score} points (Level: ${score.level}, Lines: ${score.lines}, Date: ${score.date})`);
+      // Format and display each record in the same format as the high scores table
+      scores.forEach((score) => {
+        // Format the date to match the display format in the high scores table
+        const date = new Date(score.date);
+        const formattedDate = date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        
+        console.log(`${score.player_name}\t${score.score}\t${score.level}\t${score.lines}\t${formattedDate}`);
       });
     }
     
     console.log('======================\n');
-    
-    // Display table structure
-    console.log('Table structure:');
-    const columns = await sql`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'high_scores'
-    `;
-    
-    columns.forEach(column => {
-      console.log(`- ${column.column_name} (${column.data_type})`);
-    });
-    
   } catch (error) {
     console.error('Error connecting to database:', error);
   }

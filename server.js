@@ -134,35 +134,51 @@ async function saveScoresToDB(scores) {
     
     // Insert all scores without clearing existing ones
     if (scores && scores.length > 0) {
-      console.log(`Inserting ${scores.length} scores`);
+      console.log(`Processing ${scores.length} scores`);
       
       for (let i = 0; i < scores.length; i++) {
         const score = scores[i];
         try {
-          await sql`
-            INSERT INTO high_scores (
-              player_name, 
-              score, 
-              level, 
-              lines, 
-              date,
-              original_index
-            ) VALUES (
-              ${score.name}, 
-              ${score.score}, 
-              ${score.level}, 
-              ${score.lines}, 
-              ${score.date},
-              ${score.originalIndex !== undefined ? score.originalIndex : i}
-            )
+          // Check if this exact score already exists in the database
+          const existingScores = await sql`
+            SELECT id FROM high_scores 
+            WHERE player_name = ${score.name}
+            AND score = ${score.score}
+            AND level = ${score.level}
+            AND lines = ${score.lines}
+            AND date = ${score.date}
           `;
+          
+          // Only insert if this exact score doesn't already exist
+          if (existingScores.length === 0) {
+            console.log(`Inserting new score for ${score.name}`);
+            await sql`
+              INSERT INTO high_scores (
+                player_name, 
+                score, 
+                level, 
+                lines, 
+                date,
+                original_index
+              ) VALUES (
+                ${score.name}, 
+                ${score.score}, 
+                ${score.level}, 
+                ${score.lines}, 
+                ${score.date},
+                ${score.originalIndex !== undefined ? score.originalIndex : i}
+              )
+            `;
+          } else {
+            console.log(`Skipping duplicate score for ${score.name}`);
+          }
         } catch (insertError) {
           console.error('Error inserting score:', insertError);
           throw insertError;
         }
       }
       
-      console.log('All scores saved to database successfully');
+      console.log('All scores processed successfully');
     } else {
       console.log('No scores to save');
     }

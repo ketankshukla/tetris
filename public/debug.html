@@ -21,9 +21,9 @@
             border-radius: 5px;
         }
         button {
-            padding: 10px 15px;
             background-color: #4CAF50;
             color: white;
+            padding: 10px 15px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -40,105 +40,123 @@
             overflow-x: auto;
             white-space: pre-wrap;
         }
-        .error {
-            color: red;
-        }
-        .success {
-            color: green;
-        }
-        input, textarea {
+        input[type="text"] {
             width: 100%;
             padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            margin: 8px 0;
             box-sizing: border-box;
         }
         textarea {
+            width: 100%;
             height: 100px;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
     <h1>Tetris API Debug Tool</h1>
+    <p>Use this tool to debug API endpoints and database connectivity for the Tetris game.</p>
     
     <div class="section">
-        <h2>1. Simple API Test</h2>
-        <p>This will test if the API framework is working at all.</p>
-        <button id="testSimpleApiBtn">Test Simple API</button>
-        <div id="simpleApiResult"></div>
+        <h2>Environment Information</h2>
+        <button id="envInfoBtn">Get Environment Info</button>
+        <div id="envInfo"></div>
+    </div>
+
+    <div class="section">
+        <h2>API Endpoint Configuration</h2>
+        <p>Current origin: <span id="currentOrigin"></span></p>
+        <label for="apiUrl">API URL:</label>
+        <input type="text" id="apiUrl" value="">
+        <p>
+            <button id="useExpressApiBtn">Use Express API</button>
+            <button id="useNextApiBtn">Use Next.js API</button>
+        </p>
     </div>
     
     <div class="section">
-        <h2>2. Environment Check</h2>
-        <p>This will check if environment variables are properly set.</p>
-        <button id="testEnvBtn">Check Environment Variables</button>
-        <div id="envResult"></div>
+        <h2>Test Next.js API Routes</h2>
+        <button id="testNextApiBtn">Test Next.js API (/api/debug-env)</button>
+        <div id="nextApiResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test GET Scores</h2>
+        <button id="testGetScoresBtn">GET Scores</button>
+        <div id="getScoresResult"></div>
     </div>
     
     <div class="section">
-        <h2>3. Direct Database Test</h2>
-        <p>This will directly test the database connection without any complex logic.</p>
-        <button id="testDirectDbBtn">Test Direct Database Connection</button>
-        <div id="directDbResult"></div>
+        <h2>Test POST Scores</h2>
+        <p>Test data to send (JSON array of score objects):</p>
+        <textarea id="testScores">[
+  {
+    "name": "TestUser",
+    "score": 100,
+    "level": 1,
+    "lines": 5,
+    "date": "2025-05-19T19:00:00.000Z"
+  }
+]</textarea>
+        <button id="testPostBtn">POST Scores</button>
+        <div id="postResult"></div>
     </div>
     
     <div class="section">
-        <h2>4. Simple Scores API Test</h2>
-        <p>This will test the simplified scores API.</p>
-        <button id="testSimpleScoresBtn">Test Simple Scores API</button>
-        <div id="simpleScoresResult"></div>
-    </div>
-    
-    <div class="section">
-        <h2>5. Database Connection Test</h2>
-        <p>This will test if the API can connect to the database and retrieve scores.</p>
+        <h2>Test Database Connection</h2>
         <button id="testDbBtn">Test Database Connection</button>
         <div id="dbResult"></div>
     </div>
     
     <div class="section">
-        <h2>6. API GET Request Test</h2>
-        <p>This will test if the API endpoint is accessible and returning scores.</p>
-        <input type="text" id="apiUrl" value="/api/scores" placeholder="API URL (e.g., /api/scores)">
-        <button id="testGetBtn">Test GET Request</button>
-        <div id="getResult"></div>
+        <h2>Test Simple API</h2>
+        <button id="testSimpleApiBtn">Test Simple API</button>
+        <div id="simpleApiResult"></div>
     </div>
     
     <div class="section">
-        <h2>7. API POST Request Test</h2>
-        <p>This will test if the API can save scores to the database.</p>
-        <textarea id="testScores">[
-  {
-    "name": "Debug Test",
-    "score": 999,
-    "level": 9,
-    "lines": 99,
-    "date": "2025-05-19T23:00:00.000Z"
-  }
-]</textarea>
-        <button id="testPostBtn">Test POST Request</button>
-        <div id="postResult"></div>
-    </div>
-    
-    <div class="section">
-        <h2>8. Environment Information</h2>
-        <p>Current URL: <span id="currentUrl"></span></p>
-        <p>Origin: <span id="originUrl"></span></p>
-        <p>Hostname: <span id="hostname"></span></p>
-        <p>User Agent: <span id="userAgent"></span></p>
+        <h2>Log</h2>
+        <button id="clearLogBtn">Clear Log</button>
+        <pre id="logOutput"></pre>
     </div>
 
     <script>
-        // Display environment information
-        document.getElementById('currentUrl').textContent = window.location.href;
-        document.getElementById('originUrl').textContent = window.location.origin;
-        document.getElementById('hostname').textContent = window.location.hostname;
-        document.getElementById('userAgent').textContent = navigator.userAgent;
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set current origin
+            const originSpan = document.getElementById('currentOrigin');
+            originSpan.textContent = window.location.origin;
+            
+            // Set default API URL
+            const apiUrlInput = document.getElementById('apiUrl');
+            apiUrlInput.value = `${window.location.origin}/api/scores`;
+            
+            // Log initial info
+            log('Debug tool initialized');
+            log(`Current origin: ${window.location.origin}`);
+        });
+        
+        // Logging function
+        function log(message) {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            logOutput.textContent += `[${timestamp}] ${message}\n`;
+            // Auto-scroll to bottom
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        // Clear log
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            document.getElementById('logOutput').textContent = '';
+            log('Log cleared');
+        });
         
         // Helper function to build API URLs
         function getApiUrl(endpoint) {
-            return `${window.location.origin}${endpoint}`;
+            const baseUrl = document.getElementById('apiUrl').value;
+            return endpoint ? `${baseUrl}/${endpoint}` : baseUrl;
         }
         
         // Test simple API
@@ -147,113 +165,21 @@
             resultDiv.innerHTML = '<p>Testing simple API endpoint...</p>';
             
             try {
-                const response = await fetch(getApiUrl('/api/test'), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const apiUrl = `${window.location.origin}/api/simple-scores`;
+                log(`Fetching from: ${apiUrl}`);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
+                const response = await fetch(apiUrl);
                 const data = await response.json();
+                
+                log(`Simple API response: ${JSON.stringify(data)}`);
                 resultDiv.innerHTML = `
-                    <p class="success">Simple API test successful!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
                 `;
             } catch (error) {
+                log(`Error testing simple API: ${error.message}`);
                 resultDiv.innerHTML = `
-                    <p class="error">Error testing simple API: ${error.message}</p>
-                    <p>This indicates that the API framework is not working correctly.</p>
-                `;
-            }
-        });
-        
-        // Test environment variables
-        document.getElementById('testEnvBtn').addEventListener('click', async () => {
-            const resultDiv = document.getElementById('envResult');
-            resultDiv.innerHTML = '<p>Checking environment variables...</p>';
-            
-            try {
-                const response = await fetch(getApiUrl('/api/env-check'), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                resultDiv.innerHTML = `
-                    <p class="success">Environment check successful!</p>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                `;
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <p class="error">Error checking environment: ${error.message}</p>
-                `;
-            }
-        });
-        
-        // Test direct database connection
-        document.getElementById('testDirectDbBtn').addEventListener('click', async () => {
-            const resultDiv = document.getElementById('directDbResult');
-            resultDiv.innerHTML = '<p>Testing direct database connection...</p>';
-            
-            try {
-                const response = await fetch(getApiUrl('/api/direct-db'), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                resultDiv.innerHTML = `
-                    <p class="success">Direct database connection successful!</p>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                `;
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <p class="error">Error with direct database connection: ${error.message}</p>
-                `;
-            }
-        });
-        
-        // Test simple scores API
-        document.getElementById('testSimpleScoresBtn').addEventListener('click', async () => {
-            const resultDiv = document.getElementById('simpleScoresResult');
-            resultDiv.innerHTML = '<p>Testing simple scores API...</p>';
-            
-            try {
-                const response = await fetch(getApiUrl('/api/simple-scores'), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                resultDiv.innerHTML = `
-                    <p class="success">Simple scores API test successful!</p>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                `;
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <p class="error">Error with simple scores API: ${error.message}</p>
+                    <p>Error: ${error.message}</p>
                 `;
             }
         });
@@ -264,119 +190,151 @@
             resultDiv.innerHTML = '<p>Testing database connection...</p>';
             
             try {
-                const response = await fetch(getApiUrl('/api/debug-db'), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const apiUrl = `${window.location.origin}/api/test-db`;
+                log(`Fetching from: ${apiUrl}`);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
+                const response = await fetch(apiUrl);
                 const data = await response.json();
+                
+                log(`Database test response: ${JSON.stringify(data)}`);
                 resultDiv.innerHTML = `
-                    <p class="success">Database connection successful!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
                 `;
             } catch (error) {
+                log(`Error testing database: ${error.message}`);
                 resultDiv.innerHTML = `
-                    <p class="error">Error testing database connection: ${error.message}</p>
-                    <p>This could indicate that:</p>
-                    <ul>
-                        <li>The API route doesn't exist</li>
-                        <li>There's an error in the serverless function</li>
-                        <li>The database connection string is invalid</li>
-                    </ul>
+                    <p>Error: ${error.message}</p>
                 `;
             }
         });
         
-        // Test GET request
-        document.getElementById('testGetBtn').addEventListener('click', async () => {
-            const resultDiv = document.getElementById('getResult');
-            const apiUrl = document.getElementById('apiUrl').value;
-            resultDiv.innerHTML = `<p>Testing GET request to ${apiUrl}...</p>`;
+        // Get environment info
+        document.getElementById('envInfoBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('envInfo');
+            resultDiv.innerHTML = '<p>Getting environment information...</p>';
             
             try {
-                const response = await fetch(getApiUrl(apiUrl), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const apiUrl = `${window.location.origin}/api/debug-env`;
+                log(`Fetching from: ${apiUrl}`);
                 
-                const contentType = response.headers.get('content-type');
+                const response = await fetch(apiUrl);
+                const data = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    resultDiv.innerHTML = `
-                        <p class="success">GET request successful!</p>
-                        <p>Content-Type: ${contentType}</p>
-                        <pre>${JSON.stringify(data, null, 2)}</pre>
-                    `;
-                } else {
-                    const text = await response.text();
-                    resultDiv.innerHTML = `
-                        <p class="error">Response is not JSON!</p>
-                        <p>Content-Type: ${contentType}</p>
-                        <p>First 500 characters of response:</p>
-                        <pre>${text.substring(0, 500)}${text.length > 500 ? '...' : ''}</pre>
-                    `;
-                }
-            } catch (error) {
+                log(`Environment info response: ${JSON.stringify(data)}`);
                 resultDiv.innerHTML = `
-                    <p class="error">Error making GET request: ${error.message}</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`Error getting environment info: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <p>Error: ${error.message}</p>
                 `;
             }
         });
         
-        // Test POST request
+        // Test Next.js API
+        document.getElementById('testNextApiBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('nextApiResult');
+            resultDiv.innerHTML = '<p>Testing Next.js API route...</p>';
+            
+            try {
+                const apiUrl = `${window.location.origin}/api/debug-env`;
+                log(`Fetching from: ${apiUrl}`);
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                log(`Next.js API response: ${JSON.stringify(data)}`);
+                resultDiv.innerHTML = `
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`Error testing Next.js API: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // Test GET scores
+        document.getElementById('testGetScoresBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('getScoresResult');
+            resultDiv.innerHTML = '<p>Getting scores...</p>';
+            
+            try {
+                const apiUrl = document.getElementById('apiUrl').value;
+                log(`Fetching from: ${apiUrl}`);
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                log(`GET scores response: ${JSON.stringify(data)}`);
+                resultDiv.innerHTML = `
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`Error getting scores: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // Test POST scores
         document.getElementById('testPostBtn').addEventListener('click', async () => {
             const resultDiv = document.getElementById('postResult');
             const apiUrl = document.getElementById('apiUrl').value;
             const testScoresText = document.getElementById('testScores').value;
             
-            resultDiv.innerHTML = `<p>Testing POST request to ${apiUrl}...</p>`;
+            resultDiv.innerHTML = '<p>Posting scores...</p>';
             
             try {
                 // Parse the JSON input
                 const testScores = JSON.parse(testScoresText);
+                log(`Posting to: ${apiUrl}`);
+                log(`Data: ${JSON.stringify(testScores)}`);
                 
-                const response = await fetch(getApiUrl(apiUrl), {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify(testScores)
+                    body: JSON.stringify({ highScores: testScores })
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
                 const data = await response.json();
+                
+                log(`POST scores response: ${JSON.stringify(data)}`);
                 resultDiv.innerHTML = `
-                    <p class="success">POST request successful!</p>
+                    <p>Status: ${response.status} ${response.statusText}</p>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
                 `;
             } catch (error) {
+                log(`Error posting scores: ${error.message}`);
                 resultDiv.innerHTML = `
-                    <p class="error">Error making POST request: ${error.message}</p>
-                    <p>This could be due to:</p>
-                    <ul>
-                        <li>Invalid JSON in the test scores</li>
-                        <li>API endpoint error</li>
-                        <li>Database connection issue</li>
-                    </ul>
+                    <p>Error: ${error.message}</p>
+                    <pre>${error.stack}</pre>
                 `;
             }
+        });
+        
+        // Set API URL to Express endpoint
+        document.getElementById('useExpressApiBtn').addEventListener('click', () => {
+            const apiUrlInput = document.getElementById('apiUrl');
+            apiUrlInput.value = `${window.location.origin}/api/scores`;
+            log(`API URL set to Express endpoint: ${apiUrlInput.value}`);
+        });
+        
+        // Set API URL to Next.js endpoint
+        document.getElementById('useNextApiBtn').addEventListener('click', () => {
+            const apiUrlInput = document.getElementById('apiUrl');
+            apiUrlInput.value = `${window.location.origin}/api/scores`;
+            log(`API URL set to Next.js endpoint: ${apiUrlInput.value}`);
         });
     </script>
 </body>
