@@ -4,6 +4,7 @@ const path = require('path');
 const { neon } = require('@neondatabase/serverless');
 const cors = require('cors');
 const fs = require('fs').promises;
+require('dotenv').config(); // Load environment variables from .env file
 
 // Create Express app
 const app = express();
@@ -24,7 +25,8 @@ async function initializeDatabase() {
       console.error('DATABASE_URL not found in environment variables');
       return false;
     }
-
+    
+    console.log('Initializing database connection...');
     const sql = neon(process.env.DATABASE_URL);
     
     // Create table if it doesn't exist
@@ -40,9 +42,7 @@ async function initializeDatabase() {
       )
     `;
     
-    // Update schema if needed
-    await updateDatabaseSchema();
-    
+    console.log('Database initialized successfully');
     return true;
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -132,11 +132,7 @@ async function saveScoresToDB(scores) {
     
     console.log('Saving scores to database...');
     
-    // Clear existing scores
-    await sql`TRUNCATE TABLE high_scores`;
-    console.log('Cleared existing scores');
-    
-    // Insert all scores
+    // Insert all scores without clearing existing ones
     if (scores && scores.length > 0) {
       console.log(`Inserting ${scores.length} scores`);
       
@@ -568,29 +564,59 @@ app.get('/api/scores', async (req, res) => {
 app.post('/api/scores', async (req, res) => {
   try {
     // Log the request body for debugging
+    console.log('API call: /api/scores (POST)');
     console.log('Received POST request with body:', JSON.stringify(req.body));
     
     // Validate the input
-    if (!req.body || !Array.isArray(req.body)) {
+    if (!req.body || !Array.isArray(req.body.highScores)) {
       console.error('Invalid request body format');
-      res.status(400).json({ error: 'Invalid request format. Expected array of scores.' });
-      return;
+      return res.status(400).json({ 
+        error: 'Invalid request format', 
+        message: 'Expected { highScores: [...] }',
+        timestamp: new Date().toISOString()
+      });
     }
     
-    const success = await saveScores(req.body);
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL not found in environment variables');
+      return res.status(500).json({ 
+        error: 'Database configuration error', 
+        message: 'DATABASE_URL not found in environment variables',
+        timestamp: new Date().toISOString()
+      });
+    }
     
-    if (success) {
-      // Get the scores again to confirm they were saved
-      const scores = await getScores();
-      console.log('Scores saved successfully, returning:', JSON.stringify(scores));
-      res.status(200).json({ success: true, scores });
-    } else {
-      console.error('Failed to save scores');
-      res.status(500).json({ error: 'Failed to save scores' });
+    // Initialize database if needed
+    await initializeDatabase();
+    
+    try {
+      // Save the scores to the database
+      await saveScoresToDB(req.body.highScores);
+      
+      // Get the updated scores to confirm they were saved
+      const scores = await getScoresFromDB();
+      console.log(`Scores saved successfully, returning ${scores.length} scores`);
+      
+      return res.status(200).json({ 
+        success: true, 
+        highScores: scores,
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ 
+        error: 'Database error', 
+        message: dbError.message,
+        timestamp: new Date().toISOString()
+      });
     }
   } catch (error) {
-    console.error('Error in POST handler:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    console.error('Error in POST /api/scores handler:', error);
+    return res.status(500).json({ 
+      error: 'Server error', 
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
