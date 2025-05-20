@@ -7,6 +7,7 @@
 
 require('dotenv').config();
 const postgres = require('postgres');
+const readline = require('readline');
 
 // Check if DATABASE_URL is defined
 if (!process.env.DATABASE_URL) {
@@ -47,6 +48,12 @@ const testPatterns = [
   'TEMP'
 ];
 
+// Create readline interface for user input
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
 async function removeTestRecords() {
   try {
     console.log('Checking for test records...');
@@ -75,6 +82,7 @@ async function removeTestRecords() {
       console.log('Created high_scores table.');
       console.log('No test records to remove since the table was just created.');
       await sql.end();
+      rl.close();
       return;
     }
     
@@ -93,6 +101,7 @@ async function removeTestRecords() {
     if (count === 0) {
       console.log('No test records found in the database.');
       await sql.end();
+      rl.close();
       return;
     }
     
@@ -112,17 +121,8 @@ async function removeTestRecords() {
       console.log(`${index + 1}. ${record.player_name} - Score: ${record.score}, Level: ${record.level}, Lines: ${record.lines}, Date: ${record.date}`);
     });
     
-    // Ask for confirmation before proceeding
-    console.log('\nAre you sure you want to remove these test records? (y/n)');
-    
-    // Since we're in a Node.js script, we need to handle user input
-    const readline = require('readline');
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    
-    rl.question('', async (answer) => {
+    // Ask for confirmation with a proper prompt
+    rl.question('\nAre you sure you want to remove these test records? (y/n): ', async (answer) => {
       if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
         // Remove the test records
         const result = await sql.unsafe(`
@@ -144,6 +144,7 @@ async function removeTestRecords() {
     if (sql) {
       await sql.end();
     }
+    rl.close();
     process.exit(1);
   }
 }
