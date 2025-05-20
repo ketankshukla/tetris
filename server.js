@@ -52,17 +52,18 @@ async function getScoresFromDB() {
     
     // Get scores from database
     const scores = await sql`
-      SELECT * FROM high_scores 
+      SELECT player_name as name, score, level, lines, date 
+      FROM high_scores 
       ORDER BY score DESC 
       LIMIT 10
     `;
     
     return scores.map(row => ({
-      name: row.player_name,
+      name: row.name,
       score: row.score,
       level: row.level,
       lines: row.lines,
-      date: row.date
+      date: row.date ? row.date.toString() : 'N/A'
     }));
   } catch (error) {
     console.error('Error getting scores from database:', error);
@@ -239,7 +240,8 @@ app.get('/api/direct-db', async (req, res) => {
     
     // Get scores from database
     const scores = await sql`
-      SELECT * FROM high_scores 
+      SELECT player_name as name, score, level, lines, date 
+      FROM high_scores 
       ORDER BY score DESC 
       LIMIT 10
     `;
@@ -251,11 +253,11 @@ app.get('/api/direct-db', async (req, res) => {
       databaseTime: result[0].time,
       tableExists: tableExists || 'Created now',
       scores: scores.map(row => ({
-        name: row.player_name,
+        name: row.name,
         score: row.score,
         level: row.level,
         lines: row.lines,
-        date: row.date
+        date: row.date ? row.date.toString() : 'N/A'
       })),
       timestamp: new Date().toISOString()
     });
@@ -292,33 +294,10 @@ app.get('/api/debug-db', async (req, res) => {
     // Test database connection with a simple query
     const result = await sql`SELECT NOW() as time`;
     
-    // Check if high_scores table exists
-    const tableCheck = await sql`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'high_scores'
-      );
-    `;
-    
-    const tableExists = tableCheck[0].exists;
-    
-    // Create high_scores table if it doesn't exist
-    if (!tableExists) {
-      await sql`
-        CREATE TABLE high_scores (
-          id SERIAL PRIMARY KEY,
-          player_name TEXT NOT NULL,
-          score INTEGER NOT NULL,
-          level INTEGER NOT NULL,
-          lines INTEGER NOT NULL,
-          date TEXT NOT NULL
-        )
-      `;
-    }
-    
     // Get scores from database
     const scores = await sql`
-      SELECT * FROM high_scores 
+      SELECT player_name as name, score, level, lines, date 
+      FROM high_scores 
       ORDER BY score DESC 
       LIMIT 10
     `;
@@ -328,13 +307,12 @@ app.get('/api/debug-db', async (req, res) => {
       success: true,
       message: 'Database connection successful',
       databaseTime: result[0].time,
-      tableExists: tableExists || 'Created now',
       scores: scores.map(row => ({
-        name: row.player_name,
+        name: row.name,
         score: row.score,
         level: row.level,
         lines: row.lines,
-        date: row.date
+        date: row.date ? row.date.toString() : 'N/A'
       })),
       timestamp: new Date().toISOString()
     });
@@ -381,7 +359,8 @@ app.get('/api/simple-scores', async (req, res) => {
     
     // Get scores from database
     const scores = await sql`
-      SELECT * FROM high_scores 
+      SELECT player_name as name, score, level, lines, date 
+      FROM high_scores 
       ORDER BY score DESC 
       LIMIT 100
     `;
@@ -389,11 +368,11 @@ app.get('/api/simple-scores', async (req, res) => {
     // Return scores
     return res.status(200).json({
       highScores: scores.map(row => ({
-        name: row.player_name,
+        name: row.name,
         score: row.score,
         level: row.level,
         lines: row.lines,
-        date: row.date
+        date: row.date ? row.date.toString() : 'N/A'
       }))
     });
   } catch (error) {
@@ -468,7 +447,8 @@ app.post('/api/simple-scores', async (req, res) => {
     
     // Get updated scores
     const updatedScores = await sql`
-      SELECT * FROM high_scores 
+      SELECT player_name as name, score, level, lines, date 
+      FROM high_scores 
       ORDER BY score DESC 
       LIMIT 100
     `;
@@ -477,11 +457,11 @@ app.post('/api/simple-scores', async (req, res) => {
     return res.status(200).json({
       success: true,
       highScores: updatedScores.map(row => ({
-        name: row.player_name,
+        name: row.name,
         score: row.score,
         level: row.level,
         lines: row.lines,
-        date: row.date
+        date: row.date ? row.date.toString() : 'N/A'
       }))
     });
   } catch (error) {
