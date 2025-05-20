@@ -196,11 +196,14 @@ app.get('/api/env-check', (req, res) => {
 // Direct database connection test
 app.get('/api/direct-db', async (req, res) => {
   try {
+    console.log('API call: /api/direct-db (GET)');
+    
     // Get DATABASE_URL directly from environment
     const DATABASE_URL = process.env.DATABASE_URL;
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
+      console.error('DATABASE_URL not found in environment variables');
       return res.status(500).json({
         error: 'DATABASE_URL not found in environment variables',
         environment: process.env.NODE_ENV || 'unknown',
@@ -208,13 +211,18 @@ app.get('/api/direct-db', async (req, res) => {
       });
     }
     
+    console.log('Database URL is set, connecting to database...');
+    
     // Connect to database using the direct connection string
     const sql = neon(DATABASE_URL);
     
     // Execute a simple query to test connection
+    console.log('Testing database connection...');
     const result = await sql`SELECT NOW() as time`;
+    console.log('Database connection successful, time:', result[0].time);
     
     // Check if table exists
+    console.log('Checking if high_scores table exists...');
     const tableCheck = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -223,9 +231,11 @@ app.get('/api/direct-db', async (req, res) => {
     `;
     
     const tableExists = tableCheck[0].exists;
+    console.log('Table exists:', tableExists);
     
     // Create table if it doesn't exist
     if (!tableExists) {
+      console.log('Creating high_scores table...');
       await sql`
         CREATE TABLE high_scores (
           id SERIAL PRIMARY KEY,
@@ -236,9 +246,11 @@ app.get('/api/direct-db', async (req, res) => {
           date TEXT NOT NULL
         )
       `;
+      console.log('Table created successfully');
     }
     
     // Get scores from database
+    console.log('Executing query to get high scores...');
     const scores = await sql`
       SELECT player_name as name, score, level, lines, date 
       FROM high_scores 
@@ -246,19 +258,28 @@ app.get('/api/direct-db', async (req, res) => {
       LIMIT 10
     `;
     
+    console.log(`Query executed, found ${scores.length} scores`);
+    console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
+    
+    // Map the scores to the expected format
+    const mappedScores = scores.map(row => ({
+      name: row.name,
+      score: row.score,
+      level: row.level,
+      lines: row.lines,
+      date: row.date ? row.date.toString() : 'N/A'
+    }));
+    
+    console.log('Mapped scores:', JSON.stringify(mappedScores));
+    
     // Return success response
+    console.log('Sending response...');
     return res.status(200).json({
       success: true,
       message: 'Database connection successful',
       databaseTime: result[0].time,
       tableExists: tableExists || 'Created now',
-      scores: scores.map(row => ({
-        name: row.name,
-        score: row.score,
-        level: row.level,
-        lines: row.lines,
-        date: row.date ? row.date.toString() : 'N/A'
-      })),
+      scores: mappedScores,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -277,24 +298,32 @@ app.get('/api/direct-db', async (req, res) => {
 // Debug database connection
 app.get('/api/debug-db', async (req, res) => {
   try {
+    console.log('API call: /api/debug-db (GET)');
+    
     // Get DATABASE_URL from environment variables
     const DATABASE_URL = process.env.DATABASE_URL;
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
+      console.error('DATABASE_URL environment variable is not set');
       return res.status(500).json({
         error: 'DATABASE_URL environment variable is not set',
         timestamp: new Date().toISOString()
       });
     }
     
+    console.log('Database URL is set, connecting to database...');
+    
     // Connect to database
     const sql = neon(DATABASE_URL);
     
     // Test database connection with a simple query
+    console.log('Testing database connection...');
     const result = await sql`SELECT NOW() as time`;
+    console.log('Database connection successful, time:', result[0].time);
     
     // Get scores from database
+    console.log('Executing query to get high scores...');
     const scores = await sql`
       SELECT player_name as name, score, level, lines, date 
       FROM high_scores 
@@ -302,18 +331,27 @@ app.get('/api/debug-db', async (req, res) => {
       LIMIT 10
     `;
     
+    console.log(`Query executed, found ${scores.length} scores`);
+    console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
+    
+    // Map the scores to the expected format
+    const mappedScores = scores.map(row => ({
+      name: row.name,
+      score: row.score,
+      level: row.level,
+      lines: row.lines,
+      date: row.date ? row.date.toString() : 'N/A'
+    }));
+    
+    console.log('Mapped scores:', JSON.stringify(mappedScores));
+    
     // Return success response
+    console.log('Sending response...');
     return res.status(200).json({
       success: true,
       message: 'Database connection successful',
       databaseTime: result[0].time,
-      scores: scores.map(row => ({
-        name: row.name,
-        score: row.score,
-        level: row.level,
-        lines: row.lines,
-        date: row.date ? row.date.toString() : 'N/A'
-      })),
+      scores: mappedScores,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -332,32 +370,26 @@ app.get('/api/debug-db', async (req, res) => {
 // Simple scores API
 app.get('/api/simple-scores', async (req, res) => {
   try {
+    console.log('API call: /api/simple-scores (GET)');
+    
     // Get DATABASE_URL directly from environment
     const DATABASE_URL = process.env.DATABASE_URL;
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
+      console.error('DATABASE_URL not found in environment variables');
       return res.status(500).json({
         error: 'DATABASE_URL not found in environment variables'
       });
     }
     
+    console.log('Database URL is set, connecting to database...');
+    
     // Connect to database
     const sql = neon(DATABASE_URL);
     
-    // Create table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS high_scores (
-        id SERIAL PRIMARY KEY,
-        player_name TEXT NOT NULL,
-        score INTEGER NOT NULL,
-        level INTEGER NOT NULL,
-        lines INTEGER NOT NULL,
-        date TEXT NOT NULL
-      )
-    `;
-    
     // Get scores from database
+    console.log('Executing query to get high scores...');
     const scores = await sql`
       SELECT player_name as name, score, level, lines, date 
       FROM high_scores 
@@ -365,15 +397,24 @@ app.get('/api/simple-scores', async (req, res) => {
       LIMIT 100
     `;
     
+    console.log(`Query executed, found ${scores.length} scores`);
+    console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
+    
+    // Map the scores to the expected format
+    const mappedScores = scores.map(row => ({
+      name: row.name,
+      score: row.score,
+      level: row.level,
+      lines: row.lines,
+      date: row.date ? row.date.toString() : 'N/A'
+    }));
+    
+    console.log('Mapped scores:', JSON.stringify(mappedScores));
+    
     // Return scores
+    console.log('Sending response...');
     return res.status(200).json({
-      highScores: scores.map(row => ({
-        name: row.name,
-        score: row.score,
-        level: row.level,
-        lines: row.lines,
-        date: row.date ? row.date.toString() : 'N/A'
-      }))
+      highScores: mappedScores
     });
   } catch (error) {
     console.error('Error in scores API:', error);
