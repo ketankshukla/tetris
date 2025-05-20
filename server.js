@@ -117,7 +117,7 @@ async function getScoresFromDB() {
     }));
   } catch (error) {
     console.error('Error getting scores from database:', error);
-    return null;
+    throw error; // Propagate the error to be handled by the caller
   }
 }
 
@@ -125,7 +125,7 @@ async function saveScoresToDB(scores) {
   try {
     if (!process.env.DATABASE_URL) {
       console.log('DATABASE_URL not found, cannot save scores to database');
-      return false;
+      throw new Error('DATABASE_URL not found in environment variables');
     }
 
     const sql = neon(process.env.DATABASE_URL);
@@ -162,6 +162,7 @@ async function saveScoresToDB(scores) {
           `;
         } catch (insertError) {
           console.error('Error inserting score:', insertError);
+          throw insertError;
         }
       }
       
@@ -173,118 +174,33 @@ async function saveScoresToDB(scores) {
     return true;
   } catch (error) {
     console.error('Error saving scores to database:', error);
-    return false;
-  }
-}
-
-async function getScoresFromFile() {
-  try {
-    // Check if scores.json exists
-    try {
-      await fs.access(path.join(__dirname, 'scores.json'));
-    } catch (error) {
-      // Create scores.json with default data if it doesn't exist
-      const defaultScores = {
-        highScores: [
-          {
-            name: "Test Player",
-            score: 1000,
-            level: 10,
-            lines: 100,
-            date: new Date().toLocaleString()
-          }
-        ]
-      };
-      await fs.writeFile(
-        path.join(__dirname, 'scores.json'),
-        JSON.stringify(defaultScores, null, 2),
-        'utf8'
-      );
-      console.log('Created default scores.json file');
-    }
-    
-    // Read scores from file
-    const data = await fs.readFile(path.join(__dirname, 'scores.json'), 'utf8');
-    const parsedData = JSON.parse(data);
-    
-    // Check if the data has the expected structure
-    if (parsedData.highScores && Array.isArray(parsedData.highScores)) {
-      return parsedData.highScores;
-    } else if (Array.isArray(parsedData)) {
-      return parsedData;
-    } else {
-      console.log('Unexpected data structure in scores.json, creating default');
-      return [
-        {
-          name: "Test Player",
-          score: 1000,
-          level: 10,
-          lines: 100,
-          date: new Date().toLocaleString()
-        }
-      ];
-    }
-  } catch (error) {
-    console.error('Error reading scores from file:', error);
-    return [
-      {
-        name: "Default Player",
-        score: 500,
-        level: 5,
-        lines: 50,
-        date: new Date().toLocaleString()
-      }
-    ];
-  }
-}
-
-async function saveScoresToFile(scores) {
-  try {
-    await fs.writeFile(
-      path.join(__dirname, 'scores.json'),
-      JSON.stringify(scores, null, 2),
-      'utf8'
-    );
-    return true;
-  } catch (error) {
-    console.error('Error saving scores to file:', error);
-    return false;
+    throw error; // Propagate the error to be handled by the caller
   }
 }
 
 async function getScores() {
   try {
-    const dbInitialized = await initializeDatabase();
-    if (dbInitialized) {
-      const dbScores = await getScoresFromDB();
-      if (dbScores) {
-        return dbScores;
-      }
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL not found in environment variables');
     }
     
-    // Fallback to file
-    return await getScoresFromFile();
+    return await getScoresFromDB();
   } catch (error) {
     console.error('Error getting scores:', error);
-    return [];
+    throw error; // Propagate the error to be handled by the caller
   }
 }
 
 async function saveScores(scores) {
   try {
-    const dbInitialized = await initializeDatabase();
-    if (dbInitialized) {
-      const dbSaveSuccess = await saveScoresToDB(scores);
-      if (dbSaveSuccess) {
-        return true;
-      }
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL not found in environment variables');
     }
     
-    // Fallback to file
-    return await saveScoresToFile(scores);
+    return await saveScoresToDB(scores);
   } catch (error) {
     console.error('Error saving scores:', error);
-    return false;
+    throw error; // Propagate the error to be handled by the caller
   }
 }
 
@@ -409,7 +325,7 @@ app.get('/api/direct-db', async (req, res) => {
     console.log(`Query executed, found ${scores.length} scores`);
     console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
     
-    // Map the scores to the expected format
+    // Map scores to the expected format
     const mappedScores = scores.map((row, index) => ({
       name: row.name,
       score: row.score,
@@ -523,87 +439,41 @@ app.get('/api/simple-scores', async (req, res) => {
     console.log('API call: /api/simple-scores (GET)');
     
     // Get DATABASE_URL directly from environment
-    const DATABASE_URL = process.env.DATABASE_URL;
+    const dbUrl = process.env.DATABASE_URL;
     
-    // Check if DATABASE_URL is set
-    if (!DATABASE_URL) {
-      console.log('DATABASE_URL not found, using file-based scores');
-      const fileScores = await getScoresFromFile();
-      
-      console.log(`Found ${fileScores.length} scores in file`);
-      console.log('First score (if any):', fileScores.length > 0 ? JSON.stringify(fileScores[0]) : 'No scores found');
-      
-      return res.status(200).json({
-        highScores: fileScores.map((score, index) => ({
-          ...score,
-          originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
-        })),
-        source: 'file'
-      });
-    }
-    
-    console.log('Database URL is set, connecting to database...');
-    
-    // Connect to database
-    const sql = neon(DATABASE_URL);
-    
-    // Get scores from database
-    console.log('Executing query to get high scores...');
-    const scores = await sql`
-      SELECT 
-        player_name as name, 
-        score, 
-        level, 
-        lines, 
-        date,
-        original_index
-      FROM high_scores 
-      ORDER BY score DESC 
-      LIMIT 100
-    `;
-    
-    console.log(`Query executed, found ${scores.length} scores`);
-    console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
-    
-    // Map scores to the expected format
-    const mappedScores = scores.map((row, index) => ({
-      name: row.name,
-      score: row.score,
-      level: row.level,
-      lines: row.lines,
-      date: row.date ? row.date.toString() : 'N/A',
-      originalIndex: row.original_index !== null ? row.original_index : index
-    }));
-    
-    console.log('Mapped scores:', JSON.stringify(mappedScores));
-    
-    // Return scores
-    console.log('Sending response...');
-    return res.status(200).json({
-      highScores: mappedScores,
-      source: 'database'
-    });
-  } catch (error) {
-    console.error('Error in scores API:', error);
-    
-    // Try to get scores from file as fallback
-    try {
-      const fileScores = await getScoresFromFile();
-      return res.status(200).json({
-        highScores: fileScores.map((score, index) => ({
-          ...score,
-          originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
-        })),
-        source: 'file (fallback)',
-        error: error.message
-      });
-    } catch (fallbackError) {
+    if (!dbUrl) {
+      console.error('DATABASE_URL not found in environment variables');
       return res.status(500).json({
-        error: 'Server error',
-        message: error.message,
-        fallbackError: fallbackError.message
+        error: 'Database configuration error',
+        message: 'DATABASE_URL not found in environment variables',
+        timestamp: new Date().toISOString()
       });
     }
+    
+    // Initialize database if needed
+    await initializeDatabase();
+    
+    try {
+      // Get scores from database
+      const mappedScores = await getScoresFromDB();
+      console.log(`Retrieved ${mappedScores.length} scores from database for /api/simple-scores endpoint`);
+      
+      return res.status(200).json({ 
+        highScores: mappedScores, 
+        source: 'database',
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('Error getting scores from database:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error in /api/simple-scores endpoint:', error);
+    return res.status(500).json({ 
+      error: 'Server error', 
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -612,120 +482,52 @@ app.post('/api/simple-scores', async (req, res) => {
     // Validate request body
     if (!req.body || !Array.isArray(req.body)) {
       return res.status(400).json({
-        error: 'Invalid request format. Expected array of scores.'
+        error: 'Invalid request body',
+        message: 'Request body must be an array of score objects',
+        timestamp: new Date().toISOString()
       });
     }
     
-    const scores = req.body;
+    console.log('API call: /api/simple-scores (POST)');
+    console.log(`Received ${req.body.length} scores`);
     
     // Get DATABASE_URL directly from environment
-    const DATABASE_URL = process.env.DATABASE_URL;
+    const dbUrl = process.env.DATABASE_URL;
     
-    // Check if DATABASE_URL is set
-    if (!DATABASE_URL) {
-      console.log('DATABASE_URL not found, using file-based scores');
-      const fileSaveSuccess = await saveScoresToFile(scores);
-      
-      if (fileSaveSuccess) {
-        return res.status(200).json({
-          success: true,
-          source: 'file'
-        });
-      } else {
-        return res.status(500).json({
-          error: 'Failed to save scores to file'
-        });
-      }
-    }
-    
-    // Connect to database
-    const sql = neon(DATABASE_URL);
-    
-    // Create table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS high_scores (
-        id SERIAL PRIMARY KEY,
-        player_name TEXT NOT NULL,
-        score INTEGER NOT NULL,
-        level INTEGER NOT NULL,
-        lines INTEGER NOT NULL,
-        date TEXT NOT NULL,
-        original_index INTEGER
-      )
-    `;
-    
-    // Clear existing scores
-    await sql`TRUNCATE TABLE high_scores`;
-    
-    // Insert new scores
-    if (scores.length > 0) {
-      for (const score of scores) {
-        await sql`
-          INSERT INTO high_scores (
-            player_name, 
-            score, 
-            level, 
-            lines, 
-            date,
-            original_index
-          ) VALUES (
-            ${score.name}, 
-            ${score.score}, 
-            ${score.level}, 
-            ${score.lines}, 
-            ${score.date},
-            ${score.originalIndex !== undefined ? score.originalIndex : null}
-          )
-        `;
-      }
-    }
-    
-    // Get updated scores
-    const updatedScores = await sql`
-      SELECT player_name as name, score, level, lines, date 
-      FROM high_scores 
-      ORDER BY score DESC 
-      LIMIT 100
-    `;
-    
-    // Return success response
-    return res.status(200).json({
-      success: true,
-      highScores: updatedScores.map(row => ({
-        name: row.name,
-        score: row.score,
-        level: row.level,
-        lines: row.lines,
-        date: row.date ? row.date.toString() : 'N/A'
-      })),
-      source: 'database'
-    });
-  } catch (error) {
-    console.error('Error in scores API:', error);
-    
-    // Try to save scores to file as fallback
-    try {
-      const fileSaveSuccess = await saveScoresToFile(req.body);
-      if (fileSaveSuccess) {
-        return res.status(200).json({
-          success: true,
-          source: 'file (fallback)',
-          error: error.message
-        });
-      } else {
-        return res.status(500).json({
-          error: 'Server error',
-          message: error.message,
-          fallbackError: 'Failed to save scores to file'
-        });
-      }
-    } catch (fallbackError) {
+    if (!dbUrl) {
+      console.error('DATABASE_URL not found in environment variables');
       return res.status(500).json({
-        error: 'Server error',
-        message: error.message,
-        fallbackError: fallbackError.message
+        error: 'Database configuration error',
+        message: 'DATABASE_URL not found in environment variables',
+        timestamp: new Date().toISOString()
       });
     }
+    
+    // Initialize database if needed
+    await initializeDatabase();
+    
+    // Save scores to database
+    try {
+      await saveScoresToDB(req.body);
+      console.log('Scores saved to database successfully');
+      
+      return res.status(200).json({
+        message: 'Scores saved successfully',
+        count: req.body.length,
+        source: 'database',
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('Error saving scores to database:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error in POST /api/simple-scores endpoint:', error);
+    return res.status(500).json({
+      error: 'Server error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -734,51 +536,30 @@ app.get('/api/scores', async (req, res) => {
   try {
     console.log('API call: /api/scores (GET)');
     
-    let scores = [];
-    let source = 'unknown';
-    
-    // Try to get scores from database first
-    if (process.env.DATABASE_URL) {
-      try {
-        const dbScores = await getScoresFromDB();
-        if (dbScores && dbScores.length > 0) {
-          scores = dbScores;
-          source = 'database';
-          console.log(`Retrieved ${scores.length} scores from database`);
-        }
-      } catch (dbError) {
-        console.error('Error getting scores from database:', dbError);
-      }
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL not found in environment variables');
+      return res.status(500).json({ 
+        error: 'Database configuration error', 
+        message: 'DATABASE_URL not found in environment variables',
+        timestamp: new Date().toISOString()
+      });
     }
     
-    // Fall back to file if database failed or returned no scores
-    if (scores.length === 0) {
-      try {
-        const fileScores = await getScoresFromFile();
-        if (fileScores && fileScores.length > 0) {
-          scores = fileScores.map((score, index) => ({
-            name: score.name,
-            score: score.score,
-            level: score.level,
-            lines: score.lines,
-            date: score.date,
-            originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
-          }));
-          source = 'file';
-          console.log(`Retrieved ${scores.length} scores from file`);
-        }
-      } catch (fileError) {
-        console.error('Error getting scores from file:', fileError);
-      }
-    }
+    // Initialize database if needed
+    await initializeDatabase();
+    
+    // Get scores from database
+    const scores = await getScoresFromDB();
+    console.log(`Retrieved ${scores.length} scores from database for /api/scores endpoint`);
     
     // Return the scores in the format expected by the client
-    return res.status(200).json({ scores: { highScores: scores } });
+    return res.status(200).json({ highScores: scores });
   } catch (error) {
     console.error('Error in /api/scores endpoint:', error);
     return res.status(500).json({ 
       error: 'Server error', 
-      message: error.message 
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
