@@ -35,13 +35,50 @@ async function initializeDatabase() {
         score INTEGER NOT NULL,
         level INTEGER NOT NULL,
         lines INTEGER NOT NULL,
-        date TEXT NOT NULL
+        date TEXT NOT NULL,
+        original_index INTEGER
       )
     `;
+    
+    // Update schema if needed
+    await updateDatabaseSchema();
     
     return true;
   } catch (error) {
     console.error('Error initializing database:', error);
+    return false;
+  }
+}
+
+async function updateDatabaseSchema() {
+  try {
+    if (!process.env.DATABASE_URL) {
+      console.log('DATABASE_URL not found, skipping schema update');
+      return false;
+    }
+
+    const sql = neon(process.env.DATABASE_URL);
+    
+    // Check if original_index column exists
+    const columnCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'high_scores' AND column_name = 'original_index'
+      );
+    `;
+    
+    // Add the column if it doesn't exist
+    if (!columnCheck[0].exists) {
+      console.log('Adding original_index column to high_scores table');
+      await sql`ALTER TABLE high_scores ADD COLUMN original_index INTEGER;`;
+      console.log('Column added successfully');
+    } else {
+      console.log('original_index column already exists');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating database schema:', error);
     return false;
   }
 }
@@ -52,18 +89,31 @@ async function getScoresFromDB() {
     
     // Get scores from database
     const scores = await sql`
-      SELECT player_name as name, score, level, lines, date 
+      SELECT 
+        player_name as name, 
+        score, 
+        level, 
+        lines, 
+        date,
+        original_index
       FROM high_scores 
       ORDER BY score DESC 
-      LIMIT 10
+      LIMIT 100
     `;
     
+    console.log(`Retrieved ${scores.length} scores from database`);
+    if (scores.length > 0) {
+      console.log('First score:', JSON.stringify(scores[0]));
+    }
+    
+    // Map scores to the expected format
     return scores.map(row => ({
       name: row.name,
       score: row.score,
       level: row.level,
       lines: row.lines,
-      date: row.date ? row.date.toString() : 'N/A'
+      date: row.date ? row.date.toString() : 'N/A',
+      originalIndex: row.original_index
     }));
   } catch (error) {
     console.error('Error getting scores from database:', error);
@@ -73,30 +123,51 @@ async function getScoresFromDB() {
 
 async function saveScoresToDB(scores) {
   try {
+    if (!process.env.DATABASE_URL) {
+      console.log('DATABASE_URL not found, cannot save scores to database');
+      return false;
+    }
+
     const sql = neon(process.env.DATABASE_URL);
+    
+    console.log('Saving scores to database...');
     
     // Clear existing scores
     await sql`TRUNCATE TABLE high_scores`;
+    console.log('Cleared existing scores');
     
-    // Insert new scores
-    if (scores.length > 0) {
-      for (const score of scores) {
-        await sql`
-          INSERT INTO high_scores (
-            player_name, 
-            score, 
-            level, 
-            lines, 
-            date
-          ) VALUES (
-            ${score.name}, 
-            ${score.score}, 
-            ${score.level}, 
-            ${score.lines}, 
-            ${score.date}
-          )
-        `;
+    // Insert all scores
+    if (scores && scores.length > 0) {
+      console.log(`Inserting ${scores.length} scores`);
+      
+      for (let i = 0; i < scores.length; i++) {
+        const score = scores[i];
+        try {
+          await sql`
+            INSERT INTO high_scores (
+              player_name, 
+              score, 
+              level, 
+              lines, 
+              date,
+              original_index
+            ) VALUES (
+              ${score.name}, 
+              ${score.score}, 
+              ${score.level}, 
+              ${score.lines}, 
+              ${score.date},
+              ${score.originalIndex !== undefined ? score.originalIndex : i}
+            )
+          `;
+        } catch (insertError) {
+          console.error('Error inserting score:', insertError);
+        }
       }
+      
+      console.log('All scores saved to database successfully');
+    } else {
+      console.log('No scores to save');
     }
     
     return true;
@@ -108,11 +179,62 @@ async function saveScoresToDB(scores) {
 
 async function getScoresFromFile() {
   try {
+    // Check if scores.json exists
+    try {
+      await fs.access(path.join(__dirname, 'scores.json'));
+    } catch (error) {
+      // Create scores.json with default data if it doesn't exist
+      const defaultScores = {
+        highScores: [
+          {
+            name: "Test Player",
+            score: 1000,
+            level: 10,
+            lines: 100,
+            date: new Date().toLocaleString()
+          }
+        ]
+      };
+      await fs.writeFile(
+        path.join(__dirname, 'scores.json'),
+        JSON.stringify(defaultScores, null, 2),
+        'utf8'
+      );
+      console.log('Created default scores.json file');
+    }
+    
+    // Read scores from file
     const data = await fs.readFile(path.join(__dirname, 'scores.json'), 'utf8');
-    return JSON.parse(data);
+    const parsedData = JSON.parse(data);
+    
+    // Check if the data has the expected structure
+    if (parsedData.highScores && Array.isArray(parsedData.highScores)) {
+      return parsedData.highScores;
+    } else if (Array.isArray(parsedData)) {
+      return parsedData;
+    } else {
+      console.log('Unexpected data structure in scores.json, creating default');
+      return [
+        {
+          name: "Test Player",
+          score: 1000,
+          level: 10,
+          lines: 100,
+          date: new Date().toLocaleString()
+        }
+      ];
+    }
   } catch (error) {
     console.error('Error reading scores from file:', error);
-    return [];
+    return [
+      {
+        name: "Default Player",
+        score: 500,
+        level: 5,
+        lines: 50,
+        date: new Date().toLocaleString()
+      }
+    ];
   }
 }
 
@@ -243,16 +365,42 @@ app.get('/api/direct-db', async (req, res) => {
           score INTEGER NOT NULL,
           level INTEGER NOT NULL,
           lines INTEGER NOT NULL,
-          date TEXT NOT NULL
+          date TEXT NOT NULL,
+          original_index INTEGER
         )
       `;
       console.log('Table created successfully');
     }
     
+    // Check if original_index column exists
+    console.log('Checking if original_index column exists...');
+    const columnCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'high_scores' AND column_name = 'original_index'
+      );
+    `;
+    
+    const columnExists = columnCheck[0].exists;
+    console.log('original_index column exists:', columnExists);
+    
+    // Add the column if it doesn't exist
+    if (!columnExists) {
+      console.log('Adding original_index column to high_scores table...');
+      await sql`ALTER TABLE high_scores ADD COLUMN original_index INTEGER;`;
+      console.log('Column added successfully');
+    }
+    
     // Get scores from database
     console.log('Executing query to get high scores...');
     const scores = await sql`
-      SELECT player_name as name, score, level, lines, date 
+      SELECT 
+        player_name as name, 
+        score, 
+        level, 
+        lines, 
+        date,
+        original_index
       FROM high_scores 
       ORDER BY score DESC 
       LIMIT 10
@@ -262,12 +410,13 @@ app.get('/api/direct-db', async (req, res) => {
     console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
     
     // Map the scores to the expected format
-    const mappedScores = scores.map(row => ({
+    const mappedScores = scores.map((row, index) => ({
       name: row.name,
       score: row.score,
       level: row.level,
       lines: row.lines,
-      date: row.date ? row.date.toString() : 'N/A'
+      date: row.date ? row.date.toString() : 'N/A',
+      originalIndex: row.original_index !== null ? row.original_index : index
     }));
     
     console.log('Mapped scores:', JSON.stringify(mappedScores));
@@ -279,6 +428,7 @@ app.get('/api/direct-db', async (req, res) => {
       message: 'Database connection successful',
       databaseTime: result[0].time,
       tableExists: tableExists || 'Created now',
+      columnExists: columnExists || 'Added now',
       scores: mappedScores,
       timestamp: new Date().toISOString()
     });
@@ -377,9 +527,18 @@ app.get('/api/simple-scores', async (req, res) => {
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
-      console.error('DATABASE_URL not found in environment variables');
-      return res.status(500).json({
-        error: 'DATABASE_URL not found in environment variables'
+      console.log('DATABASE_URL not found, using file-based scores');
+      const fileScores = await getScoresFromFile();
+      
+      console.log(`Found ${fileScores.length} scores in file`);
+      console.log('First score (if any):', fileScores.length > 0 ? JSON.stringify(fileScores[0]) : 'No scores found');
+      
+      return res.status(200).json({
+        highScores: fileScores.map((score, index) => ({
+          ...score,
+          originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
+        })),
+        source: 'file'
       });
     }
     
@@ -391,7 +550,13 @@ app.get('/api/simple-scores', async (req, res) => {
     // Get scores from database
     console.log('Executing query to get high scores...');
     const scores = await sql`
-      SELECT player_name as name, score, level, lines, date 
+      SELECT 
+        player_name as name, 
+        score, 
+        level, 
+        lines, 
+        date,
+        original_index
       FROM high_scores 
       ORDER BY score DESC 
       LIMIT 100
@@ -400,13 +565,14 @@ app.get('/api/simple-scores', async (req, res) => {
     console.log(`Query executed, found ${scores.length} scores`);
     console.log('First score (if any):', scores.length > 0 ? JSON.stringify(scores[0]) : 'No scores found');
     
-    // Map the scores to the expected format
-    const mappedScores = scores.map(row => ({
+    // Map scores to the expected format
+    const mappedScores = scores.map((row, index) => ({
       name: row.name,
       score: row.score,
       level: row.level,
       lines: row.lines,
-      date: row.date ? row.date.toString() : 'N/A'
+      date: row.date ? row.date.toString() : 'N/A',
+      originalIndex: row.original_index !== null ? row.original_index : index
     }));
     
     console.log('Mapped scores:', JSON.stringify(mappedScores));
@@ -414,15 +580,30 @@ app.get('/api/simple-scores', async (req, res) => {
     // Return scores
     console.log('Sending response...');
     return res.status(200).json({
-      highScores: mappedScores
+      highScores: mappedScores,
+      source: 'database'
     });
   } catch (error) {
     console.error('Error in scores API:', error);
     
-    return res.status(500).json({
-      error: 'Server error',
-      message: error.message
-    });
+    // Try to get scores from file as fallback
+    try {
+      const fileScores = await getScoresFromFile();
+      return res.status(200).json({
+        highScores: fileScores.map((score, index) => ({
+          ...score,
+          originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
+        })),
+        source: 'file (fallback)',
+        error: error.message
+      });
+    } catch (fallbackError) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: error.message,
+        fallbackError: fallbackError.message
+      });
+    }
   }
 });
 
@@ -442,9 +623,19 @@ app.post('/api/simple-scores', async (req, res) => {
     
     // Check if DATABASE_URL is set
     if (!DATABASE_URL) {
-      return res.status(500).json({
-        error: 'DATABASE_URL not found in environment variables'
-      });
+      console.log('DATABASE_URL not found, using file-based scores');
+      const fileSaveSuccess = await saveScoresToFile(scores);
+      
+      if (fileSaveSuccess) {
+        return res.status(200).json({
+          success: true,
+          source: 'file'
+        });
+      } else {
+        return res.status(500).json({
+          error: 'Failed to save scores to file'
+        });
+      }
     }
     
     // Connect to database
@@ -458,7 +649,8 @@ app.post('/api/simple-scores', async (req, res) => {
         score INTEGER NOT NULL,
         level INTEGER NOT NULL,
         lines INTEGER NOT NULL,
-        date TEXT NOT NULL
+        date TEXT NOT NULL,
+        original_index INTEGER
       )
     `;
     
@@ -474,13 +666,15 @@ app.post('/api/simple-scores', async (req, res) => {
             score, 
             level, 
             lines, 
-            date
+            date,
+            original_index
           ) VALUES (
             ${score.name}, 
             ${score.score}, 
             ${score.level}, 
             ${score.lines}, 
-            ${score.date}
+            ${score.date},
+            ${score.originalIndex !== undefined ? score.originalIndex : null}
           )
         `;
       }
@@ -503,15 +697,35 @@ app.post('/api/simple-scores', async (req, res) => {
         level: row.level,
         lines: row.lines,
         date: row.date ? row.date.toString() : 'N/A'
-      }))
+      })),
+      source: 'database'
     });
   } catch (error) {
     console.error('Error in scores API:', error);
     
-    return res.status(500).json({
-      error: 'Server error',
-      message: error.message
-    });
+    // Try to save scores to file as fallback
+    try {
+      const fileSaveSuccess = await saveScoresToFile(req.body);
+      if (fileSaveSuccess) {
+        return res.status(200).json({
+          success: true,
+          source: 'file (fallback)',
+          error: error.message
+        });
+      } else {
+        return res.status(500).json({
+          error: 'Server error',
+          message: error.message,
+          fallbackError: 'Failed to save scores to file'
+        });
+      }
+    } catch (fallbackError) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: error.message,
+        fallbackError: fallbackError.message
+      });
+    }
   }
 });
 
@@ -562,7 +776,7 @@ app.get('*', (req, res) => {
 });
 
 // For local development
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Tetris server running at http://localhost:${port}`);
 });
