@@ -620,6 +620,88 @@ app.post('/api/scores', async (req, res) => {
   }
 });
 
+// Add a new endpoint for vercel debugging
+app.get('/api/vercel-debug', async (req, res) => {
+  try {
+    console.log('API call: /api/vercel-debug (GET)');
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    
+    // Check if DATABASE_URL is set
+    const dbUrlExists = !!process.env.DATABASE_URL;
+    
+    // Get database info without exposing credentials
+    let dbInfo = null;
+    if (dbUrlExists) {
+      try {
+        const dbUrl = new URL(process.env.DATABASE_URL);
+        dbInfo = {
+          protocol: dbUrl.protocol,
+          host: dbUrl.host,
+          pathname: dbUrl.pathname,
+          username: dbUrl.username,
+          // Don't include password
+        };
+      } catch (e) {
+        dbInfo = { error: 'Invalid DATABASE_URL format' };
+      }
+    }
+    
+    // Try to connect to the database and get scores
+    let dbConnection = false;
+    let scores = [];
+    let error = null;
+    
+    if (dbUrlExists) {
+      try {
+        const sql = neon(process.env.DATABASE_URL);
+        
+        // Test connection
+        await sql`SELECT 1 as test`;
+        dbConnection = true;
+        
+        // Get scores
+        scores = await sql`
+          SELECT 
+            player_name as name, 
+            score, 
+            level, 
+            lines, 
+            date
+          FROM high_scores 
+          ORDER BY score DESC
+        `;
+      } catch (err) {
+        error = {
+          message: err.message,
+          stack: process.env.NODE_ENV === 'development' ? err.stack : null
+        };
+      }
+    }
+    
+    // Return debug info
+    return res.status(200).json({
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'not set',
+      databaseConfigured: dbUrlExists,
+      databaseInfo: dbInfo,
+      databaseConnected: dbConnection,
+      scoresCount: scores.length,
+      scores: scores,
+      error: error
+    });
+  } catch (error) {
+    console.error('Error in /api/vercel-debug:', error);
+    return res.status(500).json({ 
+      error: 'Server error', 
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Catch-all route to serve index.html for any unmatched routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
