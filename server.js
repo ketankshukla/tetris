@@ -527,10 +527,19 @@ app.post('/api/simple-scores', async (req, res) => {
   }
 });
 
-// Add a new endpoint for /api/scores that matches what the client expects
+// GET endpoint for scores - this is the main endpoint used by the client
 app.get('/api/scores', async (req, res) => {
   try {
     console.log('API call: /api/scores (GET)');
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
     
     if (!process.env.DATABASE_URL) {
       console.error('DATABASE_URL not found in environment variables');
@@ -541,17 +550,29 @@ app.get('/api/scores', async (req, res) => {
       });
     }
     
-    // Initialize database if needed
-    await initializeDatabase();
-    
-    // Get scores from database
-    const scores = await getScoresFromDB();
-    console.log(`Retrieved ${scores.length} scores from database for /api/scores endpoint`);
-    
-    // Return the scores in the format expected by the client
-    return res.status(200).json({ highScores: scores });
+    try {
+      // Initialize database if needed
+      await initializeDatabase();
+      
+      // Get scores from database
+      const scores = await getScoresFromDB();
+      console.log(`Retrieved ${scores.length} scores from database`);
+      
+      // Return scores in the format expected by the client
+      return res.status(200).json({ 
+        highScores: scores,
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ 
+        error: 'Database error', 
+        message: dbError.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   } catch (error) {
-    console.error('Error in /api/scores endpoint:', error);
+    console.error('Server error:', error);
     return res.status(500).json({ 
       error: 'Server error', 
       message: error.message,
@@ -567,12 +588,29 @@ app.post('/api/scores', async (req, res) => {
     console.log('API call: /api/scores (POST)');
     console.log('Received POST request with body:', JSON.stringify(req.body));
     
-    // Validate the input
-    if (!req.body || !Array.isArray(req.body.highScores)) {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    // Validate the input - handle both array format and {highScores: [...]} format
+    let highScores = [];
+    if (req.body && Array.isArray(req.body)) {
+      console.log('Received scores in array format');
+      highScores = req.body;
+    } else if (req.body && Array.isArray(req.body.highScores)) {
+      console.log('Received scores in {highScores: [...]} format');
+      highScores = req.body.highScores;
+    } else {
       console.error('Invalid request body format');
       return res.status(400).json({ 
         error: 'Invalid request format', 
-        message: 'Expected { highScores: [...] }',
+        message: 'Expected array of scores or { highScores: [...] }',
         timestamp: new Date().toISOString()
       });
     }
@@ -591,7 +629,7 @@ app.post('/api/scores', async (req, res) => {
     
     try {
       // Save the scores to the database
-      await saveScoresToDB(req.body.highScores);
+      await saveScoresToDB(highScores);
       
       // Get the updated scores to confirm they were saved
       const scores = await getScoresFromDB();
@@ -611,7 +649,7 @@ app.post('/api/scores', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error in POST /api/scores handler:', error);
+    console.error('Server error:', error);
     return res.status(500).json({ 
       error: 'Server error', 
       message: error.message,
