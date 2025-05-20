@@ -31,6 +31,8 @@ cd E:/projects
 git clone https://github.com/ketankshukla/tetris.git
 # Navigate to the project directory
 cd tetris
+# Install dependencies
+npm install
 ```
 
 ## Step 4: Create a New Neon Database
@@ -77,7 +79,20 @@ echo "DATABASE_URL=your_connection_string_here" > .env
 
 Replace `your_connection_string_here` with the connection string you copied from Neon.
 
-## Step 8: Update Your Vercel Environment Variables
+## Step 8: Test Your Database Connection
+
+Run the database test script to ensure your connection is working properly:
+
+```bash
+# Navigate to your project directory
+cd E:/projects/tetris
+# Run the database test script
+node database-test.js
+```
+
+You should see a success message indicating that the connection was established and the high_scores table exists.
+
+## Step 9: Update Your Vercel Environment Variables
 
 1. Go to [Vercel](https://vercel.com/)
 2. Log in to your account
@@ -88,20 +103,18 @@ Replace `your_connection_string_here` with the connection string you copied from
 7. Replace the value with your new connection string
 8. Click "Save"
 
-## Step 9: Test Your Local Setup
+## Step 10: Test Your Local Setup
 
 ```bash
 # Navigate to your project directory
 cd E:/projects/tetris
-# Install dependencies (if needed)
-npm install
-# Run the database test script
-node database-test.js
 # Start the server
 npm run dev
 ```
 
-## Step 10: Deploy to Vercel
+Open your browser and navigate to http://localhost:3001 to verify that the game works locally.
+
+## Step 11: Deploy to Vercel
 
 ```bash
 # Navigate to your project directory
@@ -115,7 +128,7 @@ git push
 
 This will trigger a new deployment on Vercel.
 
-## Step 11: Verify Everything Works
+## Step 12: Verify Everything Works
 
 1. Wait for the Vercel deployment to complete
 2. Visit your deployed site (e.g., https://tetris-ketankshukla.vercel.app/)
@@ -128,6 +141,19 @@ cd E:/projects/tetris
 node view-db-records.js
 ```
 
+## Step 13: Debug Tools (If Needed)
+
+If you encounter issues with the high score system, use the included debug tools:
+
+1. Access the debug interface by visiting `/debug.html` on your site
+2. Use the debug interface to test API endpoints and database connectivity
+3. Run the clean-duplicate-scores.js script to remove any duplicate entries:
+
+```bash
+cd E:/projects/tetris
+node clean-duplicate-scores.js
+```
+
 ## Troubleshooting
 
 If you encounter any issues:
@@ -135,14 +161,17 @@ If you encounter any issues:
 1. **Database Connection Issues**:
    - Verify your DATABASE_URL is correct in both your local .env file and Vercel environment variables
    - Make sure your IP address is allowed in Neon's connection settings
+   - Run `node database-test.js` to test the connection directly
 
 2. **API Endpoint Issues**:
    - Check the browser console for any error messages
    - Verify that the client is using `window.location.origin` for API URLs
+   - Use the debug.html page to test API endpoints directly
 
 3. **Deployment Issues**:
    - Check the Vercel deployment logs for any errors
    - Make sure your vercel.json file is correctly configured
+   - Verify that the DATABASE_URL environment variable is set in Vercel
 
 ## Key Points to Remember
 
@@ -150,3 +179,4 @@ If you encounter any issues:
 2. The database table has a field called `player_name` but the frontend expects it as `name`
 3. API URLs should be constructed using `window.location.origin` to work both locally and on the deployed site
 4. Dates should be stored in ISO format for consistency
+5. The server now checks for duplicate scores before inserting them into the database
