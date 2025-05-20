@@ -597,8 +597,8 @@
 
         // Load high scores from server
         function loadHighScores() {
-            // Use API endpoint
-            const apiUrl = '/api/scores';
+            // Use API endpoint with window.location.origin to ensure it works both locally and on deployed site
+            const apiUrl = `${window.location.origin}/api/scores`;
             console.log('Loading high scores from:', apiUrl);
             
             fetch(apiUrl)
@@ -638,8 +638,8 @@
         
         // Save high scores to server
         function saveHighScoresToServer() {
-            // Use API endpoint
-            const apiUrl = '/api/scores';
+            // Use API endpoint with window.location.origin to ensure it works both locally and on deployed site
+            const apiUrl = `${window.location.origin}/api/scores`;
             console.log('Saving high scores to:', apiUrl);
             console.log('Scores being sent:', JSON.stringify(highScores));
             
@@ -649,7 +649,7 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(highScores)
+                body: JSON.stringify({ highScores: highScores })
             })
             .then(response => {
                 if (!response.ok) {
