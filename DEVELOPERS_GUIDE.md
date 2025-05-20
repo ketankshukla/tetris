@@ -9,9 +9,10 @@ This guide outlines how to structure a project that combines static content (HTM
 3. [Static Content](#static-content)
 4. [Configuration Files](#configuration-files)
 5. [Database Integration](#database-integration)
-6. [Deployment Process](#deployment-process)
-7. [Debugging Tips](#debugging-tips)
-8. [Common Issues and Solutions](#common-issues-and-solutions)
+6. [Local Development](#local-development)
+7. [Deployment Process](#deployment-process)
+8. [Debugging Tips](#debugging-tips)
+9. [Common Issues and Solutions](#common-issues-and-solutions)
 
 ## Project Structure
 
@@ -313,6 +314,50 @@ This script is particularly useful for:
 - Verifying that data is being saved correctly
 - Debugging database issues
 - Checking if the database schema is as expected
+
+## Local Development
+
+### Setting Up Your Local Environment
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+   If you're missing Next.js dependencies, install them specifically:
+   ```bash
+   npm install next react react-dom
+   ```
+
+2. **Run the Development Server**:
+   ```bash
+   npm run dev
+   ```
+   
+   This will start a Next.js development server at http://localhost:3000
+
+3. **Testing API Routes Locally**:
+   - API routes will be available at http://localhost:3000/api/...
+   - For example, http://localhost:3000/api/scores
+
+4. **Environment Variables**:
+   - Create a `.env` file in your project root with your database connection string:
+     ```
+     DATABASE_URL=postgresql://username:password@hostname/database?sslmode=require
+     ```
+   - Next.js will automatically load these variables during development
+
+### Differences Between Local and Production
+
+When developing locally:
+- API routes are served by the Next.js development server
+- Changes to files are automatically reloaded
+- Environment variables are loaded from your `.env` file
+
+In production (Vercel):
+- API routes are deployed as serverless functions
+- Static content is served from Vercel's CDN
+- Environment variables must be set in the Vercel dashboard
 
 ## Deployment Process
 
