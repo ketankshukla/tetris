@@ -51,31 +51,60 @@ async function removeTestRecords() {
   try {
     console.log('Checking for test records...');
     
+    // First, check if the high_scores table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'high_scores'
+      );
+    `;
+    
+    if (!tableExists[0].exists) {
+      console.log('The high_scores table does not exist. Creating it now...');
+      await sql`
+        CREATE TABLE IF NOT EXISTS high_scores (
+          id SERIAL PRIMARY KEY,
+          player_name TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          level INTEGER NOT NULL,
+          lines INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          original_index INTEGER
+        );
+      `;
+      console.log('Created high_scores table.');
+      console.log('No test records to remove since the table was just created.');
+      await sql.end();
+      return;
+    }
+    
     // Create a SQL pattern for LIKE queries
-    const likePatterns = testPatterns.map(pattern => `player_name LIKE '%${pattern}%'`).join(' OR ');
+    const likeConditions = testPatterns.map(pattern => `player_name ILIKE '%${pattern}%'`);
+    const whereClause = likeConditions.join(' OR ');
     
     // First, get the count of records that will be removed
-    const countResult = await sql`
+    const countResult = await sql.unsafe(`
       SELECT COUNT(*) FROM high_scores
-      WHERE ${sql.unsafe(likePatterns)}
-    `;
+      WHERE ${whereClause}
+    `);
     
     const count = parseInt(countResult[0].count, 10);
     
     if (count === 0) {
       console.log('No test records found in the database.');
+      await sql.end();
       return;
     }
     
     console.log(`Found ${count} test records to remove.`);
     
     // Get the records that will be removed (for display)
-    const recordsToRemove = await sql`
+    const recordsToRemove = await sql.unsafe(`
       SELECT id, player_name, score, level, lines, date
       FROM high_scores
-      WHERE ${sql.unsafe(likePatterns)}
+      WHERE ${whereClause}
       ORDER BY score DESC
-    `;
+    `);
     
     console.log('\nTest records to be removed:');
     console.log('----------------------------');
@@ -96,10 +125,10 @@ async function removeTestRecords() {
     rl.question('', async (answer) => {
       if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
         // Remove the test records
-        const result = await sql`
+        const result = await sql.unsafe(`
           DELETE FROM high_scores
-          WHERE ${sql.unsafe(likePatterns)}
-        `;
+          WHERE ${whereClause}
+        `);
         
         console.log(`\nSuccessfully removed ${count} test records from the database.`);
       } else {
