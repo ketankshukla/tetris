@@ -18,43 +18,48 @@ const rl = readline.createInterface({
 // Define the tools with descriptions
 const tools = [
   { 
-    name: 'database-test.js', 
-    description: 'Test database connection and table creation',
+    name: 'Test Database Connection', 
+    description: 'Check if the database connection is working properly',
     path: path.join(__dirname, 'tools', 'database-test.js')
   },
   { 
-    name: 'view-db-records.js', 
-    description: 'View all records in the high scores database',
+    name: 'View High Scores', 
+    description: 'Display all high scores stored in the database',
     path: path.join(__dirname, 'tools', 'view-db-records.js')
   },
   { 
-    name: 'clean-duplicate-scores.js', 
-    description: 'Remove duplicate scores from the database',
+    name: 'Remove Duplicate Scores', 
+    description: 'Find and delete duplicate high score entries',
     path: path.join(__dirname, 'tools', 'clean-duplicate-scores.js')
   },
   { 
-    name: 'add-test-record.js', 
-    description: 'Add a test record to the database',
+    name: 'Add Test Score', 
+    description: 'Insert a sample high score record for testing',
     path: path.join(__dirname, 'tools', 'add-test-record.js')
   },
   { 
-    name: 'check-env-format.js', 
-    description: 'Check if environment variables are properly formatted',
+    name: 'Remove Test Scores', 
+    description: 'Delete all test/sample high score records',
+    path: path.join(__dirname, 'tools', 'remove-test-records.js')
+  },
+  { 
+    name: 'Check Environment Variables', 
+    description: 'Verify that environment variables are correctly formatted',
     path: path.join(__dirname, 'tools', 'check-env-format.js')
   },
   { 
-    name: 'check-deployed-env.js', 
-    description: 'Check environment variables in deployed environment',
+    name: 'Check Deployed Environment', 
+    description: 'Inspect environment variables in the production deployment',
     path: path.join(__dirname, 'tools', 'check-deployed-env.js')
   },
   { 
-    name: 'debug-db-records.js', 
-    description: 'Debug database records with detailed output',
+    name: 'Debug Database Records', 
+    description: 'Show detailed information about database records',
     path: path.join(__dirname, 'tools', 'debug-db-records.js')
   },
   { 
-    name: 'direct-db-test.js', 
-    description: 'Direct database connection test with SQL queries',
+    name: 'Direct Database Test', 
+    description: 'Run direct SQL queries to test database functionality',
     path: path.join(__dirname, 'tools', 'direct-db-test.js')
   }
 ];
@@ -90,7 +95,7 @@ function handleSelection(selection) {
   
   const selectedTool = tools[selectedIndex - 1];
   
-  console.log(`\nRunning ${selectedTool.name}...\n`);
+  console.log(`\nRunning: ${selectedTool.name}...\n`);
   
   // Check if the file exists
   if (!fs.existsSync(selectedTool.path)) {
@@ -106,7 +111,7 @@ function handleSelection(selection) {
   });
   
   child.on('close', (code) => {
-    console.log(`\nTool ${selectedTool.name} completed with exit code ${code}`);
+    console.log(`\nTool completed with exit code ${code}`);
     askToReturnToMenu();
   });
   

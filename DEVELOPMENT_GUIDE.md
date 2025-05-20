@@ -16,6 +16,7 @@ tetris/
 │   ├── database-test.js      # Database connection test utility
 │   ├── clean-duplicate-scores.js # Utility to clean duplicate scores
 │   ├── add-test-record.js    # Add test records to database
+│   ├── remove-test-records.js # Remove test records from database
 │   ├── check-env-format.js   # Check environment variable format
 │   ├── check-deployed-env.js # Check deployed environment variables
 │   ├── debug-db-records.js   # Debug database records
@@ -109,6 +110,7 @@ The project includes a convenient tools menu that allows you to run various util
    - View database records
    - Clean duplicate scores
    - Add test records
+   - Remove test records
    - Check environment variables
    - And more...
 
