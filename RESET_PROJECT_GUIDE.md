@@ -131,7 +131,7 @@ This will trigger a new deployment on Vercel.
 ## Step 12: Verify Everything Works
 
 1. Wait for the Vercel deployment to complete
-2. Visit your deployed site (e.g., https://tetris-ketankshukla.vercel.app/)
+2. Visit your deployed site (e.g., tetris.ketanshukla.com)
 3. Play a game and add a high score
 4. Refresh the page to verify the score is still there
 5. Check the database using the view-db-records.js script:

@@ -12,7 +12,7 @@ A modern web-based Tetris game built with JavaScript, HTML5, and Node.js. Featur
 
 ## Live Demo
 
-Play the game online: [Tetris Game](https://tetris.ketanshukla.com/)
+Play the game online: [Tetris Game](https://tetris.ketanshukla.com)
 
 ## How to Run Locally
 
