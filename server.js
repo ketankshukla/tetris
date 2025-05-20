@@ -729,14 +729,57 @@ app.post('/api/simple-scores', async (req, res) => {
   }
 });
 
-// Endpoint to get high scores
+// Add a new endpoint for /api/scores that matches what the client expects
 app.get('/api/scores', async (req, res) => {
   try {
-    const scores = await getScores();
-    res.status(200).json({ scores });
+    console.log('API call: /api/scores (GET)');
+    
+    let scores = [];
+    let source = 'unknown';
+    
+    // Try to get scores from database first
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbScores = await getScoresFromDB();
+        if (dbScores && dbScores.length > 0) {
+          scores = dbScores;
+          source = 'database';
+          console.log(`Retrieved ${scores.length} scores from database`);
+        }
+      } catch (dbError) {
+        console.error('Error getting scores from database:', dbError);
+      }
+    }
+    
+    // Fall back to file if database failed or returned no scores
+    if (scores.length === 0) {
+      try {
+        const fileScores = await getScoresFromFile();
+        if (fileScores && fileScores.length > 0) {
+          scores = fileScores.map((score, index) => ({
+            name: score.name,
+            score: score.score,
+            level: score.level,
+            lines: score.lines,
+            date: score.date,
+            originalIndex: score.originalIndex !== undefined ? score.originalIndex : index
+          }));
+          source = 'file';
+          console.log(`Retrieved ${scores.length} scores from file`);
+        }
+      } catch (fileError) {
+        console.error('Error getting scores from file:', fileError);
+      }
+    }
+    
+    // Return the scores in the format expected by the client
+    return res.status(200).json({ scores: { highScores: scores } });
   } catch (error) {
-    console.error('Error in GET handler:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    console.error('Error in /api/scores endpoint:', error);
+    return res.status(500).json({ 
+      error: 'Server error', 
+      message: error.message 
+    });
   }
 });
 
