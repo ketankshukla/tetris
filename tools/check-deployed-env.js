@@ -5,11 +5,11 @@ async function checkDeployedEnv() {
   try {
     console.log('Checking deployed environment...');
     
-    // Try both URLs in case one is working
+    // Use the custom domain as the primary URL
     const deployedUrls = [
-      'https://tetris-qvekhz8oy-ketan-shuklas-projects-8feda58f.vercel.app/api/vercel-debug',
-      'https://tetris-qvekhz8oy-ketan-shuklas-projects-8feda58f.vercel.app/api/env',
-      'https://tetris-qvekhz8oy-ketan-shuklas-projects-8feda58f.vercel.app/api/debug'
+      'https://tetris.ketanshukla.com/api/vercel-debug',
+      'https://tetris.ketanshukla.com/api/env',
+      'https://tetris.ketanshukla.com/api/debug'
     ];
     
     let success = false;
@@ -63,13 +63,13 @@ async function checkDeployedEnv() {
     if (!success) {
       console.log('\n❌ Could not connect to any of the deployed environment endpoints.');
       console.log('\nPossible reasons:');
-      console.log('1. The deployment URL might have changed again');
+      console.log('1. The custom domain might not be properly configured');
       console.log('2. The API endpoint might require authentication');
       console.log('3. The server might be down or experiencing issues');
       console.log('4. The API endpoints might have different paths than expected');
       
       console.log('\nSuggestions:');
-      console.log('1. Verify the current deployment URL on Vercel dashboard');
+      console.log('1. Verify that the custom domain is properly set up in Vercel');
       console.log('2. Check that the API endpoints are correctly implemented');
       console.log('3. Try accessing the site directly in a browser to see if it\'s online');
     }
