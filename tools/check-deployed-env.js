@@ -5,8 +5,8 @@ async function checkDeployedEnv() {
   try {
     console.log('Checking deployed environment...');
     
-    // Replace with your actual deployed URL
-    const deployedUrl = 'https://tetris-ketankshukla.vercel.app/api/vercel-debug';
+    // Updated with the correct deployed URL
+    const deployedUrl = 'https://tetris-qvekhz8oy-ketan-shuklas-projects-8feda58f.vercel.app/api/vercel-debug';
     
     console.log(`Fetching from: ${deployedUrl}`);
     const response = await fetch(deployedUrl);
