@@ -941,7 +941,7 @@
                 score: score,
                 level: level,
                 lines: linesCleared,
-                date: new Date().toLocaleString(),
+                date: new Date().toISOString(), // Use ISO format for consistent dates
                 originalIndex: highScores.length // Use current length as the original index
             };
             
@@ -1355,7 +1355,21 @@
                 row.appendChild(linesCell);
                 
                 const dateCell = document.createElement('td');
-                dateCell.textContent = entry.date;
+                // Format the date for display
+                try {
+                    // Try to parse the date (handles both ISO and locale string formats)
+                    const dateObj = new Date(entry.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        // Valid date - format it consistently
+                        dateCell.textContent = dateObj.toLocaleString();
+                    } else {
+                        // Invalid date - use as is
+                        dateCell.textContent = entry.date;
+                    }
+                } catch (e) {
+                    // If parsing fails, use the original date string
+                    dateCell.textContent = entry.date;
+                }
                 row.appendChild(dateCell);
                 
                 // Add the row to the table
