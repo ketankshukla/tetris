@@ -10,9 +10,16 @@ tetris/
 ├── server.js             # Express server and API endpoints
 ├── package.json          # Node.js dependencies and scripts
 ├── vercel.json           # Vercel deployment configuration
-├── view-db-records.js    # Utility to view database records
-├── database-test.js      # Database connection test utility
-├── clean-duplicate-scores.js # Utility to clean duplicate scores
+├── tools.js              # Tools menu for running utility scripts
+├── tools/                # Utility scripts for development and debugging
+│   ├── view-db-records.js    # Utility to view database records
+│   ├── database-test.js      # Database connection test utility
+│   ├── clean-duplicate-scores.js # Utility to clean duplicate scores
+│   ├── add-test-record.js    # Add test records to database
+│   ├── check-env-format.js   # Check environment variable format
+│   ├── check-deployed-env.js # Check deployed environment variables
+│   ├── debug-db-records.js   # Debug database records
+│   └── direct-db-test.js     # Direct database test utility
 ├── pages/                # Next.js API routes (for Vercel)
 │   └── api/
 │       ├── scores.js     # API endpoint for high scores
@@ -48,9 +55,9 @@ The Express server handles:
 The game uses a Neon PostgreSQL database to store high scores. Key files:
 
 - `server.js`: Contains the `saveScoresToDB` and `getScoresFromDB` functions
-- `view-db-records.js`: Utility to view the current high scores in the database
-- `database-test.js`: Test database connectivity
-- `clean-duplicate-scores.js`: Utility to remove duplicate scores
+- `tools/view-db-records.js`: Utility to view the current high scores in the database
+- `tools/database-test.js`: Test database connectivity
+- `tools/clean-duplicate-scores.js`: Utility to remove duplicate scores
 
 ### 4. High Score System
 
@@ -85,37 +92,59 @@ The high score system consists of:
 3. **Access the Game**:
    Open your browser and navigate to `http://localhost:3001`
 
+### Using the Tools Menu
+
+The project includes a convenient tools menu that allows you to run various utility scripts:
+
+1. **Run the Tools Menu**:
+   ```bash
+   node tools.js
+   ```
+
+2. **Select a Tool**:
+   The menu will display a list of available tools with descriptions. Enter the number of the tool you want to run.
+
+3. **Available Tools**:
+   - Database connection test
+   - View database records
+   - Clean duplicate scores
+   - Add test records
+   - Check environment variables
+   - And more...
+
 ### Database Management
+
+You can use the tools menu to run these database utilities:
 
 1. **View Database Records**:
    ```bash
-   node view-db-records.js
+   # Using the tools menu
+   node tools.js
+   # Select option for view-db-records.js
+   
+   # Or run directly
+   node tools/view-db-records.js
    ```
 
 2. **Test Database Connection**:
    ```bash
-   node database-test.js
+   # Using the tools menu
+   node tools.js
+   # Select option for database-test.js
+   
+   # Or run directly
+   node tools/database-test.js
    ```
 
 3. **Clean Duplicate Scores**:
    ```bash
-   node clean-duplicate-scores.js
+   # Using the tools menu
+   node tools.js
+   # Select option for clean-duplicate-scores.js
+   
+   # Or run directly
+   node tools/clean-duplicate-scores.js
    ```
-
-### Debugging
-
-1. **Server-Side Debugging**:
-   - Check server logs in the terminal
-   - Use `console.log` statements in server.js
-
-2. **Client-Side Debugging**:
-   - Use browser developer tools (F12)
-   - Check the browser console for errors
-   - Use the debug.html page for API testing
-
-3. **Database Debugging**:
-   - Use the database utilities mentioned above
-   - Check the Neon database console for direct SQL queries
 
 ## API Endpoints
 
@@ -225,7 +254,7 @@ The project is configured for deployment to Vercel:
 
 **Solutions**:
 - Verify your DATABASE_URL is correct in the .env file
-- Run `node database-test.js` to test the connection
+- Run `node tools/database-test.js` to test the connection
 - Check if your IP is allowed in the Neon database settings
 
 ### 2. Duplicate High Scores
@@ -234,7 +263,7 @@ The project is configured for deployment to Vercel:
 
 **Solutions**:
 - The server now checks for duplicates before inserting new scores
-- Run `node clean-duplicate-scores.js` to clean existing duplicates
+- Run `node tools/clean-duplicate-scores.js` to clean existing duplicates
 
 ### 3. API Endpoint Issues
 

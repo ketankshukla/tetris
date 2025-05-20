@@ -86,8 +86,9 @@ Run the database test script to ensure your connection is working properly:
 ```bash
 # Navigate to your project directory
 cd E:/projects/tetris
-# Run the database test script
-node database-test.js
+# Run the database test script using the tools menu
+node tools.js
+# Select option for database-test.js
 ```
 
 You should see a success message indicating that the connection was established and the high_scores table exists.
@@ -131,14 +132,15 @@ This will trigger a new deployment on Vercel.
 ## Step 12: Verify Everything Works
 
 1. Wait for the Vercel deployment to complete
-2. Visit the [deployed site](https://tetris.ketanshukla.com) to play the game
+2. Visit your deployed site [tetris.ketanshukla.com](https://tetris.ketanshukla.com)
 3. Play a game and add a high score
 4. Refresh the page to verify the score is still there
-5. Check the database using the view-db-records.js script:
+5. Check the database using the tools menu:
 
 ```bash
 cd E:/projects/tetris
-node view-db-records.js
+node tools.js
+# Select option for view-db-records.js
 ```
 
 ## Step 13: Debug Tools (If Needed)
@@ -147,11 +149,12 @@ If you encounter issues with the high score system, use the included debug tools
 
 1. Access the debug interface by visiting `/debug.html` on your site
 2. Use the debug interface to test API endpoints and database connectivity
-3. Run the clean-duplicate-scores.js script to remove any duplicate entries:
+3. Run the clean-duplicate-scores.js script using the tools menu:
 
 ```bash
 cd E:/projects/tetris
-node clean-duplicate-scores.js
+node tools.js
+# Select option for clean-duplicate-scores.js
 ```
 
 ## Troubleshooting
@@ -161,7 +164,7 @@ If you encounter any issues:
 1. **Database Connection Issues**:
    - Verify your DATABASE_URL is correct in both your local .env file and Vercel environment variables
    - Make sure your IP address is allowed in Neon's connection settings
-   - Run `node database-test.js` to test the connection directly
+   - Run `node tools.js` and select option for database-test.js to test the connection directly
 
 2. **API Endpoint Issues**:
    - Check the browser console for any error messages
